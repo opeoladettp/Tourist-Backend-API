@@ -1,0 +1,231 @@
+const CalendarEntry = require('../models/CalendarEntry');
+const CustomTour = require('../models/CustomTour');
+const TourTemplate = require('../models/TourTemplate');
+const DefaultActivity = require('../models/DefaultActivity');
+const { createTourUpdate } = require('../utils/helpers');
+
+// Get calendar entries for tour template or custom tour
+const getCalendarEntries = async (req, res) => {
+  try {
+    const { tour_template_id, custom_tour_id } = req.query;
+    
+    if (!tour_template_id && !custom_tour_id) {
+      return res.status(400).json({ error: 'tour_template_id or custom_tour_id is required' });
+    }
+
+    const query = {};
+    if (tour_template_id) query.tour_template_id = tour_template_id;
+    if (custom_tour_id) query.custom_tour_id = custom_tour_id;
+
+    // Check access permissions for custom tours
+    if (custom_tour_id) {
+      const tour = await CustomTour.findById(custom_tour_id);
+      if (!tour) {
+        return res.status(404).json({ error: 'Custom tour not found' });
+      }
+
+      if (req.user.user_type === 'provider_admin' && 
+          req.user.provider_id?.toString() !== tour.provider_id.toString()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    const entries = await CalendarEntry.find(query)
+      .populate('created_by', 'first_name last_name')
+      .sort({ entry_date: 1, start_time: 1 });
+
+    res.json({ calendar_entries: entries });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch calendar entries' });
+  }
+};
+
+// Get calendar entry by ID
+const getCalendarEntryById = async (req, res) => {
+  try {
+    const entry = await CalendarEntry.findById(req.params.id)
+      .populate('created_by', 'first_name last_name');
+    
+    if (!entry) {
+      return res.status(404).json({ error: 'Calendar entry not found' });
+    }
+
+    // Check access permissions
+    if (entry.custom_tour_id) {
+      const tour = await CustomTour.findById(entry.custom_tour_id);
+      if (req.user.user_type === 'provider_admin' && 
+          req.user.provider_id?.toString() !== tour.provider_id.toString()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    res.json({ calendar_entry: entry });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch calendar entry' });
+  }
+};
+
+// Create calendar entry
+const createCalendarEntry = async (req, res) => {
+  try {
+    const entryData = req.body;
+    entryData.created_by = req.user._id;
+
+    // Check access permissions for custom tours
+    if (entryData.custom_tour_id) {
+      const tour = await CustomTour.findById(entryData.custom_tour_id);
+      if (!tour) {
+        return res.status(400).json({ error: 'Custom tour not found' });
+      }
+
+      if (req.user.user_type === 'provider_admin' && 
+          req.user.provider_id?.toString() !== tour.provider_id.toString()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    const entry = new CalendarEntry(entryData);
+    await entry.save();
+
+    // Create tour update notification if this is for a custom tour
+    if (entryData.custom_tour_id) {
+      await createTourUpdate(
+        entryData.custom_tour_id,
+        'calendar_entry',
+        `Added new activity: ${entryData.activity}`,
+        req.user._id
+      );
+    }
+
+    const populatedEntry = await CalendarEntry.findById(entry._id)
+      .populate('created_by', 'first_name last_name');
+
+    res.status(201).json({
+      message: 'Calendar entry created successfully',
+      calendar_entry: populatedEntry
+    });
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Failed to create calendar entry' });
+  }
+};
+
+// Update calendar entry
+const updateCalendarEntry = async (req, res) => {
+  try {
+    const entryId = req.params.id;
+    const updates = req.body;
+
+    const currentEntry = await CalendarEntry.findById(entryId);
+    if (!currentEntry) {
+      return res.status(404).json({ error: 'Calendar entry not found' });
+    }
+
+    // Check access permissions
+    if (currentEntry.custom_tour_id) {
+      const tour = await CustomTour.findById(currentEntry.custom_tour_id);
+      if (req.user.user_type === 'provider_admin' && 
+          req.user.provider_id?.toString() !== tour.provider_id.toString()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    const entry = await CalendarEntry.findByIdAndUpdate(
+      entryId,
+      updates,
+      { new: true, runValidators: true }
+    ).populate('created_by', 'first_name last_name');
+
+    // Create tour update notification if this is for a custom tour
+    if (currentEntry.custom_tour_id) {
+      await createTourUpdate(
+        currentEntry.custom_tour_id,
+        'calendar_entry',
+        `Updated activity: ${entry.activity}`,
+        req.user._id
+      );
+    }
+
+    res.json({
+      message: 'Calendar entry updated successfully',
+      calendar_entry: entry
+    });
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Failed to update calendar entry' });
+  }
+};
+
+// Delete calendar entry
+const deleteCalendarEntry = async (req, res) => {
+  try {
+    const entryId = req.params.id;
+
+    const entry = await CalendarEntry.findById(entryId);
+    if (!entry) {
+      return res.status(404).json({ error: 'Calendar entry not found' });
+    }
+
+    // Check access permissions
+    if (entry.custom_tour_id) {
+      const tour = await CustomTour.findById(entry.custom_tour_id);
+      if (req.user.user_type === 'provider_admin' && 
+          req.user.provider_id?.toString() !== tour.provider_id.toString()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    await CalendarEntry.findByIdAndDelete(entryId);
+
+    // Create tour update notification if this is for a custom tour
+    if (entry.custom_tour_id) {
+      await createTourUpdate(
+        entry.custom_tour_id,
+        'calendar_entry',
+        `Removed activity: ${entry.activity}`,
+        req.user._id
+      );
+    }
+
+    res.json({ message: 'Calendar entry deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete calendar entry' });
+  }
+};
+
+// Get default activities for selection
+const getDefaultActivities = async (req, res) => {
+  try {
+    const { category, search } = req.query;
+    
+    const query = { is_active: true };
+    if (category) query.category = category;
+    if (search) {
+      query.$or = [
+        { activity_name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const activities = await DefaultActivity.find(query)
+      .select('activity_name description typical_duration_hours category')
+      .sort({ activity_name: 1 });
+
+    res.json({ activities });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch default activities' });
+  }
+};
+
+module.exports = {
+  getCalendarEntries,
+  getCalendarEntryById,
+  createCalendarEntry,
+  updateCalendarEntry,
+  deleteCalendarEntry,
+  getDefaultActivities
+};
