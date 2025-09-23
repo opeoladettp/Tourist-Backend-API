@@ -31,16 +31,15 @@ class QRCodeService {
         generatedAt: new Date().toISOString()
       };
 
-      // Generate QR code as buffer
+      // Generate QR code as buffer (using default renderer)
       const qrCodeBuffer = await QRCode.toBuffer(JSON.stringify(qrData), {
-        type: 'png',
-        quality: 0.92,
         margin: 1,
         color: {
           dark: '#000000',
           light: '#FFFFFF'
         },
-        width: 512
+        width: 512,
+        errorCorrectionLevel: 'M'
       });
 
       // Generate unique filename
@@ -80,14 +79,13 @@ class QRCodeService {
   static async generateCustomQRCode(customData, filename) {
     try {
       const qrCodeBuffer = await QRCode.toBuffer(JSON.stringify(customData), {
-        type: 'png',
-        quality: 0.92,
         margin: 1,
         color: {
           dark: '#000000',
           light: '#FFFFFF'
         },
-        width: 512
+        width: 512,
+        errorCorrectionLevel: 'M'
       });
 
       const s3Key = `qr-codes/custom/${filename}-${uuidv4()}.png`;

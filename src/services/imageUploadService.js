@@ -216,16 +216,15 @@ class ImageUploadService {
   }
 
   /**
-   * Resize image (requires sharp package)
+   * Resize image (optional - requires sharp package)
    * @param {Buffer} imageBuffer - Original image buffer
    * @param {number} width - Target width
    * @param {number} height - Target height
-   * @returns {Promise<Buffer>} - Resized image buffer
+   * @returns {Promise<Buffer>} - Resized image buffer or original if sharp not available
    */
   static async resizeImage(imageBuffer, width = 800, height = 600) {
     try {
-      // Note: This requires the 'sharp' package to be installed
-      // npm install sharp
+      // Try to use sharp if available
       const sharp = require('sharp');
       
       const resizedBuffer = await sharp(imageBuffer)
@@ -238,7 +237,7 @@ class ImageUploadService {
 
       return resizedBuffer;
     } catch (error) {
-      console.error('Error resizing image (sharp not available):', error);
+      console.log('Sharp not available, returning original image buffer');
       // Return original buffer if sharp is not available
       return imageBuffer;
     }

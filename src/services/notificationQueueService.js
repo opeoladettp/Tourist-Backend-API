@@ -4,53 +4,85 @@ const webpush = require('web-push');
 const User = require('../models/User');
 const PushSubscription = require('../models/PushSubscription');
 
-// Configure web-push
-webpush.setVapidDetails(
-  'mailto:' + (process.env.VAPID_EMAIL || 'admin@tourlicity.com'),
-  process.env.VAPID_PUBLIC_KEY || '',
-  process.env.VAPID_PRIVATE_KEY || ''
-);
+// Configure web-push (only if VAPID keys are provided)
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:' + (process.env.VAPID_EMAIL || 'admin@tourlicity.com'),
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+  console.log('VAPID keys configured for push notifications');
+} else {
+  console.log('VAPID keys not configured - push notifications will be disabled');
+}
 
-// Create notification queues
-const emailQueue = new Queue('email notifications', {
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || undefined
-  },
-  defaultJobOptions: {
-    removeOnComplete: 100, // Keep last 100 completed jobs
-    removeOnFail: 50,      // Keep last 50 failed jobs
-    attempts: 3,           // Retry failed jobs 3 times
-    backoff: {
-      type: 'exponential',
-      delay: 2000
-    }
-  }
-});
+// Create notification queues with error handling
+let emailQueue, pushQueue;
 
-const pushQueue = new Queue('push notifications', {
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || undefined
-  },
-  defaultJobOptions: {
-    removeOnComplete: 100,
-    removeOnFail: 50,
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000
+try {
+  emailQueue = new Queue('email notifications', {
+    redis: {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: process.env.REDIS_PORT || 6379,
+      password: process.env.REDIS_PASSWORD || undefined,
+      maxRetriesPerRequest: 3,
+      retryDelayOnFailover: 100,
+      lazyConnect: true
+    },
+    defaultJobOptions: {
+      removeOnComplete: 100, // Keep last 100 completed jobs
+      removeOnFail: 50,      // Keep last 50 failed jobs
+      attempts: 3,           // Retry failed jobs 3 times
+      backoff: {
+        type: 'exponential',
+        delay: 2000
+      }
     }
-  }
-});
+  });
+
+  pushQueue = new Queue('push notifications', {
+    redis: {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: process.env.REDIS_PORT || 6379,
+      password: process.env.REDIS_PASSWORD || undefined,
+      maxRetriesPerRequest: 3,
+      retryDelayOnFailover: 100,
+      lazyConnect: true
+    },
+    defaultJobOptions: {
+      removeOnComplete: 100,
+      removeOnFail: 50,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000
+      }
+    }
+  });
+
+  // Handle queue errors
+  emailQueue.on('error', (error) => {
+    console.error('Email queue error:', error);
+  });
+
+  pushQueue.on('error', (error) => {
+    console.error('Push queue error:', error);
+  });
+
+} catch (error) {
+  console.error('Failed to initialize notification queues:', error);
+  console.log('Notification queues will be disabled. Redis connection required.');
+}
 
 class NotificationQueueService {
   /**
    * Initialize queue processors
    */
   static initializeQueues() {
+    if (!emailQueue || !pushQueue) {
+      console.log('Queues not available - skipping initialization');
+      return;
+    }
     // Email queue processor
     emailQueue.process('send-email', async (job) => {
       const { to, subject, html, template, templateData } = job.data;
@@ -199,6 +231,12 @@ class NotificationQueueService {
    */
   static async queueEmail(to, subject, html, options = {}) {
     try {
+      if (!emailQueue) {
+        console.log('Email queue not available, sending directly');
+        await sendEmail(to, subject, html);
+        return { id: 'direct-send' };
+      }
+
       const job = await emailQueue.add('send-email', {
         to,
         subject,
@@ -213,7 +251,14 @@ class NotificationQueueService {
       return job;
     } catch (error) {
       console.error('Failed to queue email:', error);
-      throw error;
+      // Fallback to direct send
+      try {
+        await sendEmail(to, subject, html);
+        return { id: 'fallback-send' };
+      } catch (fallbackError) {
+        console.error('Fallback email send failed:', fallbackError);
+        throw error;
+      }
     }
   }
 
@@ -307,6 +352,11 @@ class NotificationQueueService {
    */
   static async queuePushNotification(userId, title, body, options = {}) {
     try {
+      if (!pushQueue) {
+        console.log('Push queue not available, skipping push notification');
+        return { id: 'no-queue' };
+      }
+
       const job = await pushQueue.add('send-push', {
         userId,
         title,
@@ -325,7 +375,7 @@ class NotificationQueueService {
       return job;
     } catch (error) {
       console.error('Failed to queue push notification:', error);
-      throw error;
+      return { id: 'failed' };
     }
   }
 
