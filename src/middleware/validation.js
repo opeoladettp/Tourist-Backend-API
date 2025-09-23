@@ -157,6 +157,13 @@ const schemas = {
     admin_notes: Joi.string()
   }),
 
+  // QR Code schemas
+  qrCodeShare: Joi.object({
+    recipients: Joi.array().items(Joi.string().email()).min(1).required(),
+    message: Joi.string().max(500),
+    bulk: Joi.boolean()
+  }),
+
   // Payment Config schemas
   paymentConfig: Joi.object({
     charge_per_tourist: Joi.number().min(0),

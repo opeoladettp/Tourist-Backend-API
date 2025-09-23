@@ -2,6 +2,8 @@ const CustomTour = require('../models/CustomTour');
 const TourTemplate = require('../models/TourTemplate');
 const CalendarEntry = require('../models/CalendarEntry');
 const Registration = require('../models/Registration');
+const QRCodeService = require('../services/qrCodeService');
+const NotificationService = require('../services/notificationService');
 const { paginate, buildPaginationResponse, generateJoinCode, createTourUpdate } = require('../utils/helpers');
 
 // Get all custom tours
@@ -148,6 +150,26 @@ const createCustomTour = async (req, res) => {
     const populatedTour = await CustomTour.findById(tour._id)
       .populate('provider_id', 'provider_name')
       .populate('tour_template_id', 'template_name');
+
+    // Generate QR codes asynchronously (don't wait for completion)
+    setImmediate(async () => {
+      try {
+        const qrCodeUrl = await QRCodeService.generateTourQRCode(populatedTour, 'custom');
+        const joinQrCodeUrl = await QRCodeService.generateJoinQRCode(populatedTour);
+        
+        // Update tour with QR code URLs
+        await CustomTour.findByIdAndUpdate(tour._id, {
+          qr_code_url: qrCodeUrl,
+          join_qr_code_url: joinQrCodeUrl,
+          qr_code_generated_at: new Date()
+        });
+
+        // Send notification to provider admins
+        await NotificationService.notifyQRCodeGenerated(populatedTour, qrCodeUrl, 'custom');
+      } catch (error) {
+        console.error('Error generating QR codes for new tour:', error);
+      }
+    });
 
     res.status(201).json({
       message: 'Custom tour created successfully',

@@ -62,6 +62,18 @@ const customTourSchema = new mongoose.Schema({
   teaser_images: [{
     type: String // Array of URLs for teaser images
   }],
+  qr_code_url: {
+    type: String, // URL to QR code image in S3
+    default: null
+  },
+  qr_code_generated_at: {
+    type: Date,
+    default: null
+  },
+  join_qr_code_url: {
+    type: String, // URL to join QR code image in S3
+    default: null
+  },
   web_links: [webLinkSchema],
   created_by: {
     type: mongoose.Schema.Types.ObjectId,

@@ -105,14 +105,25 @@ Authorization: Bearer <your-jwt-token>
 
 ### Role Change Requests
 
-| Method | Endpoint                              | Description                      | Access       |
-| ------ | ------------------------------------- | -------------------------------- | ------------ |
-| POST   | `/role-change-requests`               | Submit role change request       | Tourist      |
-| GET    | `/role-change-requests`               | Get all role change requests     | System Admin |
-| GET    | `/role-change-requests/my`            | Get user's role change requests  | Tourist      |
-| GET    | `/role-change-requests/:id`           | Get role change request by ID    | System Admin |
-| PUT    | `/role-change-requests/:id/process`   | Process role change request      | System Admin |
-| DELETE | `/role-change-requests/:id/cancel`    | Cancel role change request       | Tourist      |
+| Method | Endpoint                            | Description                     | Access       |
+| ------ | ----------------------------------- | ------------------------------- | ------------ |
+| POST   | `/role-change-requests`             | Submit role change request      | Tourist      |
+| GET    | `/role-change-requests`             | Get all role change requests    | System Admin |
+| GET    | `/role-change-requests/my`          | Get user's role change requests | Tourist      |
+| GET    | `/role-change-requests/:id`         | Get role change request by ID   | System Admin |
+| PUT    | `/role-change-requests/:id/process` | Process role change request     | System Admin |
+| DELETE | `/role-change-requests/:id/cancel`  | Cancel role change request      | Tourist      |
+
+### QR Codes
+
+| Method | Endpoint                              | Description                      | Access                       |
+| ------ | ------------------------------------- | -------------------------------- | ---------------------------- |
+| POST   | `/qr-codes/tours/:id/generate`        | Generate QR code for custom tour | System Admin, Provider Admin |
+| POST   | `/qr-codes/templates/:id/generate`    | Generate QR code for template    | System Admin                 |
+| PUT    | `/qr-codes/tours/:id/regenerate`      | Regenerate QR code for tour      | System Admin, Provider Admin |
+| POST   | `/qr-codes/tours/:id/share`           | Share QR code via email          | System Admin, Provider Admin |
+| GET    | `/qr-codes/tours/:id`                 | Get QR code information          | System Admin, Provider Admin |
+| DELETE | `/qr-codes/tours/:id`                 | Delete QR code                   | System Admin, Provider Admin |
 
 ## Request/Response Examples
 
@@ -443,6 +454,79 @@ Response:
 		"processed_date": "2024-01-15T14:00:00.000Z",
 		"created_date": "2024-01-15T12:00:00.000Z"
 	}
+}
+```
+
+### Generate QR Code for Tour
+
+```http
+POST /api/qr-codes/tours/64a1b2c3d4e5f6789012347/generate
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "generateJoinCode": true,
+  "notify": true
+}
+```
+
+Response:
+
+```json
+{
+	"message": "QR code generated successfully",
+	"qr_code_url": "https://s3.amazonaws.com/bucket/qr-codes/custom/64a1b2c3d4e5f6789012347-uuid.png",
+	"join_qr_code_url": "https://s3.amazonaws.com/bucket/qr-codes/custom/join-ABC123-uuid.png",
+	"generated_at": "2024-01-15T15:30:00.000Z"
+}
+```
+
+### Share QR Code via Email
+
+```http
+POST /api/qr-codes/tours/64a1b2c3d4e5f6789012347/share
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "recipients": [
+    "friend1@example.com",
+    "friend2@example.com",
+    "family@example.com"
+  ],
+  "message": "Check out this amazing tour I'm organizing!",
+  "bulk": false
+}
+```
+
+Response:
+
+```json
+{
+	"message": "QR code shared successfully to 3 recipient(s)",
+	"recipients_count": 3
+}
+```
+
+### Get QR Code Information
+
+```http
+GET /api/qr-codes/tours/64a1b2c3d4e5f6789012347?type=custom
+Authorization: Bearer <token>
+```
+
+Response:
+
+```json
+{
+	"has_qr_code": true,
+	"qr_code_url": "https://s3.amazonaws.com/bucket/qr-codes/custom/64a1b2c3d4e5f6789012347-uuid.png",
+	"has_join_qr_code": true,
+	"join_qr_code_url": "https://s3.amazonaws.com/bucket/qr-codes/custom/join-ABC123-uuid.png",
+	"generated_at": "2024-01-15T15:30:00.000Z",
+	"tour_name": "Amazing Paris Adventure",
+	"tour_id": "64a1b2c3d4e5f6789012347",
+	"join_code": "ABC123"
 }
 ```
 

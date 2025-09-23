@@ -1,0 +1,200 @@
+const QRCode = require('qrcode');
+const AWS = require('aws-sdk');
+const { v4: uuidv4 } = require('uuid');
+
+// Configure AWS S3
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION || 'us-east-1'
+});
+
+class QRCodeService {
+  /**
+   * Generate QR code for a tour and upload to S3
+   * @param {Object} tourData - Tour data to encode in QR code
+   * @param {string} tourType - 'template' or 'custom'
+   * @returns {Promise<string>} - S3 URL of the uploaded QR code
+   */
+  static async generateTourQRCode(tourData, tourType = 'custom') {
+    try {
+      // Create QR code data object
+      const qrData = {
+        type: tourType,
+        id: tourData._id,
+        name: tourData.tour_name || tourData.template_name,
+        joinCode: tourData.join_code,
+        startDate: tourData.start_date,
+        endDate: tourData.end_date,
+        provider: tourData.provider_id?.provider_name || 'Unknown Provider',
+        url: `${process.env.FRONTEND_URL || 'https://tourlicity.com'}/tours/${tourData._id}`,
+        generatedAt: new Date().toISOString()
+      };
+
+      // Generate QR code as buffer
+      const qrCodeBuffer = await QRCode.toBuffer(JSON.stringify(qrData), {
+        type: 'png',
+        quality: 0.92,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        width: 512
+      });
+
+      // Generate unique filename
+      const filename = `qr-codes/${tourType}/${tourData._id}-${uuidv4()}.png`;
+
+      // Upload to S3
+      const uploadParams = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: filename,
+        Body: qrCodeBuffer,
+        ContentType: 'image/png',
+        ACL: 'public-read',
+        Metadata: {
+          tourId: tourData._id.toString(),
+          tourType: tourType,
+          generatedAt: new Date().toISOString()
+        }
+      };
+
+      const uploadResult = await s3.upload(uploadParams).promise();
+      
+      console.log(`QR code generated and uploaded for ${tourType} tour: ${tourData._id}`);
+      return uploadResult.Location;
+
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      throw new Error('Failed to generate QR code');
+    }
+  }
+
+  /**
+   * Generate QR code with custom data
+   * @param {Object} customData - Custom data to encode
+   * @param {string} filename - Custom filename for S3
+   * @returns {Promise<string>} - S3 URL of the uploaded QR code
+   */
+  static async generateCustomQRCode(customData, filename) {
+    try {
+      const qrCodeBuffer = await QRCode.toBuffer(JSON.stringify(customData), {
+        type: 'png',
+        quality: 0.92,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        width: 512
+      });
+
+      const s3Key = `qr-codes/custom/${filename}-${uuidv4()}.png`;
+
+      const uploadParams = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: s3Key,
+        Body: qrCodeBuffer,
+        ContentType: 'image/png',
+        ACL: 'public-read',
+        Metadata: {
+          type: 'custom',
+          generatedAt: new Date().toISOString()
+        }
+      };
+
+      const uploadResult = await s3.upload(uploadParams).promise();
+      return uploadResult.Location;
+
+    } catch (error) {
+      console.error('Error generating custom QR code:', error);
+      throw new Error('Failed to generate custom QR code');
+    }
+  }
+
+  /**
+   * Delete QR code from S3
+   * @param {string} qrCodeUrl - S3 URL of the QR code to delete
+   * @returns {Promise<boolean>} - Success status
+   */
+  static async deleteQRCode(qrCodeUrl) {
+    try {
+      if (!qrCodeUrl) return true;
+
+      // Extract S3 key from URL
+      const urlParts = qrCodeUrl.split('/');
+      const bucketIndex = urlParts.findIndex(part => part.includes(process.env.S3_BUCKET_NAME));
+      
+      if (bucketIndex === -1) {
+        console.warn('Invalid S3 URL format:', qrCodeUrl);
+        return false;
+      }
+
+      const key = urlParts.slice(bucketIndex + 1).join('/');
+
+      const deleteParams = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: key
+      };
+
+      await s3.deleteObject(deleteParams).promise();
+      console.log(`QR code deleted from S3: ${key}`);
+      return true;
+
+    } catch (error) {
+      console.error('Error deleting QR code:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Regenerate QR code for a tour (delete old and create new)
+   * @param {Object} tourData - Tour data
+   * @param {string} oldQrCodeUrl - URL of old QR code to delete
+   * @param {string} tourType - 'template' or 'custom'
+   * @returns {Promise<string>} - New QR code URL
+   */
+  static async regenerateQRCode(tourData, oldQrCodeUrl, tourType = 'custom') {
+    try {
+      // Delete old QR code
+      if (oldQrCodeUrl) {
+        await this.deleteQRCode(oldQrCodeUrl);
+      }
+
+      // Generate new QR code
+      return await this.generateTourQRCode(tourData, tourType);
+
+    } catch (error) {
+      console.error('Error regenerating QR code:', error);
+      throw new Error('Failed to regenerate QR code');
+    }
+  }
+
+  /**
+   * Generate QR code for tour registration/join
+   * @param {Object} tourData - Tour data
+   * @returns {Promise<string>} - QR code URL for joining tour
+   */
+  static async generateJoinQRCode(tourData) {
+    try {
+      const joinData = {
+        type: 'join_tour',
+        tourId: tourData._id,
+        joinCode: tourData.join_code,
+        tourName: tourData.tour_name,
+        provider: tourData.provider_id?.provider_name,
+        joinUrl: `${process.env.FRONTEND_URL || 'https://tourlicity.com'}/join/${tourData.join_code}`,
+        generatedAt: new Date().toISOString()
+      };
+
+      return await this.generateCustomQRCode(joinData, `join-${tourData.join_code}`);
+
+    } catch (error) {
+      console.error('Error generating join QR code:', error);
+      throw new Error('Failed to generate join QR code');
+    }
+  }
+}
+
+module.exports = QRCodeService;

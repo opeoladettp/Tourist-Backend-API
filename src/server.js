@@ -265,6 +265,7 @@ app.use('/api/custom-tours', require('./routes/customTours'));
 app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/registrations', require('./routes/registrations'));
 app.use('/api/role-change-requests', require('./routes/roleChangeRequests'));
+app.use('/api/qr-codes', require('./routes/qrCodes'));
 
 // Additional routes (to be created)
 // app.use('/api/documents', require('./routes/documents'));

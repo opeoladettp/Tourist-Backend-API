@@ -97,6 +97,185 @@ const emailTemplates = {
       <p>Please log in to your admin dashboard to review the full application details and approve/reject this request.</p>
       <p>Best regards,<br>Tourlicity System</p>
     `
+  }),
+
+  qrCodeGenerated: (adminName, tourName, qrCodeUrl, tourType) => ({
+    subject: `QR Code Generated for ${tourName}`,
+    html: `
+      <h2>QR Code Generated</h2>
+      <p>Dear ${adminName},</p>
+      <p>A QR code has been generated for your ${tourType} tour: <strong>${tourName}</strong></p>
+      <div style="text-align: center; margin: 20px 0;">
+        <img src="${qrCodeUrl}" alt="Tour QR Code" style="max-width: 300px; border: 1px solid #ddd; padding: 10px;">
+      </div>
+      <p>You can use this QR code to:</p>
+      <ul>
+        <li>Share tour information quickly</li>
+        <li>Allow easy tour registration</li>
+        <li>Print for marketing materials</li>
+      </ul>
+      <p>Best regards,<br>Tourlicity Team</p>
+    `
+  }),
+
+  tourQRCode: (touristName, tourName, joinCode, qrCodeUrl, joinQrCodeUrl, startDate, endDate) => ({
+    subject: `Your QR Code for ${tourName}`,
+    html: `
+      <h2>Your Tour QR Code</h2>
+      <p>Dear ${touristName},</p>
+      <p>Here are your QR codes for the tour: <strong>${tourName}</strong></p>
+      
+      <div style="margin: 20px 0;">
+        <h3>Tour Information QR Code:</h3>
+        <div style="text-align: center; margin: 10px 0;">
+          <img src="${qrCodeUrl}" alt="Tour QR Code" style="max-width: 250px; border: 1px solid #ddd; padding: 10px;">
+        </div>
+      </div>
+
+      ${joinQrCodeUrl ? `
+      <div style="margin: 20px 0;">
+        <h3>Quick Join QR Code:</h3>
+        <div style="text-align: center; margin: 10px 0;">
+          <img src="${joinQrCodeUrl}" alt="Join QR Code" style="max-width: 250px; border: 1px solid #ddd; padding: 10px;">
+        </div>
+      </div>
+      ` : ''}
+
+      <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
+        <h3>Tour Details:</h3>
+        <ul>
+          <li><strong>Tour Name:</strong> ${tourName}</li>
+          <li><strong>Join Code:</strong> ${joinCode}</li>
+          <li><strong>Start Date:</strong> ${new Date(startDate).toLocaleDateString()}</li>
+          <li><strong>End Date:</strong> ${new Date(endDate).toLocaleDateString()}</li>
+        </ul>
+      </div>
+
+      <p>Save these QR codes to your device for easy access during your tour!</p>
+      <p>Best regards,<br>Tourlicity Team</p>
+    `
+  }),
+
+  tourUpdateNotification: (touristName, tourName, changes, qrCodeUrl, startDate, endDate) => ({
+    subject: `Tour Update: ${tourName}`,
+    html: `
+      <h2>Tour Update Notification</h2>
+      <p>Dear ${touristName},</p>
+      <p>Your tour <strong>${tourName}</strong> has been updated.</p>
+      
+      <div style="background-color: #fff3cd; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #ffc107;">
+        <h3>Changes Made:</h3>
+        <p>${changes}</p>
+      </div>
+
+      <div style="text-align: center; margin: 20px 0;">
+        <h3>Updated QR Code:</h3>
+        <img src="${qrCodeUrl}" alt="Updated Tour QR Code" style="max-width: 250px; border: 1px solid #ddd; padding: 10px;">
+      </div>
+
+      <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
+        <h3>Current Tour Details:</h3>
+        <ul>
+          <li><strong>Start Date:</strong> ${new Date(startDate).toLocaleDateString()}</li>
+          <li><strong>End Date:</strong> ${new Date(endDate).toLocaleDateString()}</li>
+        </ul>
+      </div>
+
+      <p>Please save the updated QR code for your records.</p>
+      <p>Best regards,<br>Tourlicity Team</p>
+    `
+  }),
+
+  tourUpdateAdminNotification: (adminName, tourName, changes, touristCount, qrCodeUrl) => ({
+    subject: `Tour Updated: ${tourName}`,
+    html: `
+      <h2>Tour Update Confirmation</h2>
+      <p>Dear ${adminName},</p>
+      <p>Your tour <strong>${tourName}</strong> has been successfully updated.</p>
+      
+      <div style="background-color: #d4edda; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #28a745;">
+        <h3>Changes Made:</h3>
+        <p>${changes}</p>
+      </div>
+
+      <p><strong>Notifications sent to:</strong> ${touristCount} registered tourists</p>
+
+      <div style="text-align: center; margin: 20px 0;">
+        <h3>Updated QR Code:</h3>
+        <img src="${qrCodeUrl}" alt="Updated Tour QR Code" style="max-width: 250px; border: 1px solid #ddd; padding: 10px;">
+      </div>
+
+      <p>All registered tourists have been notified of the changes and provided with the updated QR code.</p>
+      <p>Best regards,<br>Tourlicity Team</p>
+    `
+  }),
+
+  sharedQRCode: (senderEmail, tourName, joinCode, qrCodeUrl, message, startDate, endDate) => ({
+    subject: `${senderEmail} shared a tour with you: ${tourName}`,
+    html: `
+      <h2>Tour Shared With You</h2>
+      <p>Hello!</p>
+      <p><strong>${senderEmail}</strong> has shared a tour with you: <strong>${tourName}</strong></p>
+      
+      ${message ? `
+      <div style="background-color: #e3f2fd; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #2196f3;">
+        <h3>Personal Message:</h3>
+        <p><em>"${message}"</em></p>
+      </div>
+      ` : ''}
+
+      <div style="text-align: center; margin: 20px 0;">
+        <h3>Tour QR Code:</h3>
+        <img src="${qrCodeUrl}" alt="Tour QR Code" style="max-width: 250px; border: 1px solid #ddd; padding: 10px;">
+      </div>
+
+      <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
+        <h3>Tour Details:</h3>
+        <ul>
+          <li><strong>Tour Name:</strong> ${tourName}</li>
+          <li><strong>Join Code:</strong> ${joinCode}</li>
+          <li><strong>Start Date:</strong> ${new Date(startDate).toLocaleDateString()}</li>
+          <li><strong>End Date:</strong> ${new Date(endDate).toLocaleDateString()}</li>
+        </ul>
+      </div>
+
+      <p>Scan the QR code or use the join code to learn more about this tour!</p>
+      <p>Best regards,<br>Tourlicity Team</p>
+    `
+  }),
+
+  bulkQRCodeShare: (senderName, tourName, joinCode, qrCodeUrl, startDate, endDate) => ({
+    subject: `${senderName} invited you to join: ${tourName}`,
+    html: `
+      <h2>Tour Invitation</h2>
+      <p>Hello!</p>
+      <p><strong>${senderName}</strong> has invited you to join an exciting tour: <strong>${tourName}</strong></p>
+
+      <div style="text-align: center; margin: 20px 0;">
+        <h3>Tour QR Code:</h3>
+        <img src="${qrCodeUrl}" alt="Tour QR Code" style="max-width: 250px; border: 1px solid #ddd; padding: 10px;">
+      </div>
+
+      <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
+        <h3>Tour Details:</h3>
+        <ul>
+          <li><strong>Tour Name:</strong> ${tourName}</li>
+          <li><strong>Join Code:</strong> ${joinCode}</li>
+          <li><strong>Start Date:</strong> ${new Date(startDate).toLocaleDateString()}</li>
+          <li><strong>End Date:</strong> ${new Date(endDate).toLocaleDateString()}</li>
+        </ul>
+      </div>
+
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${process.env.FRONTEND_URL || 'https://tourlicity.com'}/join/${joinCode}" 
+           style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+          Join Tour Now
+        </a>
+      </div>
+
+      <p>Scan the QR code or click the button above to join this amazing tour!</p>
+      <p>Best regards,<br>Tourlicity Team</p>
+    `
   })
 };
 
