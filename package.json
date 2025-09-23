@@ -29,6 +29,8 @@
     "qrcode": "^1.5.3",
     "canvas": "^2.11.2",
     "uuid": "^9.0.0",
+    "bull": "^4.12.2",
+    "web-push": "^3.6.6",
     "redis": "^4.6.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"

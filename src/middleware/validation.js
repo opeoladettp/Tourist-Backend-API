@@ -165,6 +165,37 @@ const schemas = {
     bulk: Joi.boolean()
   }),
 
+  // Notification schemas
+  pushSubscription: Joi.object({
+    endpoint: Joi.string().uri().required(),
+    keys: Joi.object({
+      p256dh: Joi.string().required(),
+      auth: Joi.string().required()
+    }).required(),
+    userAgent: Joi.string(),
+    deviceType: Joi.string().valid('desktop', 'mobile', 'tablet', 'unknown'),
+    browser: Joi.string()
+  }),
+
+  sendNotification: Joi.object({
+    userId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
+    title: Joi.string().max(100).required(),
+    body: Joi.string().max(500).required(),
+    type: Joi.string().max(50),
+    includeEmail: Joi.boolean()
+  }),
+
+  bulkNotification: Joi.object({
+    title: Joi.string().max(100).required(),
+    body: Joi.string().max(500).required(),
+    userIds: Joi.array().items(Joi.string().pattern(/^[0-9a-fA-F]{24}$/)),
+    userType: Joi.string().valid('tourist', 'provider_admin', 'system_admin'),
+    type: Joi.string().max(50),
+    includeEmail: Joi.boolean(),
+    emailTemplate: Joi.string(),
+    emailTemplateData: Joi.object()
+  }).or('userIds', 'userType'),
+
   // Payment Config schemas
   paymentConfig: Joi.object({
     charge_per_tourist: Joi.number().min(0),

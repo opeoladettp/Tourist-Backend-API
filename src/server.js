@@ -17,6 +17,10 @@ connectRedis().then(client => {
   redisClient = client;
   if (client) {
     app.locals.redis = client;
+    
+    // Initialize notification queues after Redis connection
+    const NotificationQueueService = require('./services/notificationQueueService');
+    NotificationQueueService.initializeQueues();
   }
 });
 
@@ -266,6 +270,7 @@ app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/registrations', require('./routes/registrations'));
 app.use('/api/role-change-requests', require('./routes/roleChangeRequests'));
 app.use('/api/qr-codes', require('./routes/qrCodes'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Additional routes (to be created)
 // app.use('/api/documents', require('./routes/documents'));

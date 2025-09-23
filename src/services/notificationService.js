@@ -1,4 +1,5 @@
 const { sendEmail, emailTemplates } = require('../utils/email');
+const NotificationQueueService = require('./notificationQueueService');
 const User = require('../models/User');
 const Registration = require('../models/Registration');
 
@@ -21,14 +22,26 @@ class NotificationService {
       const tourName = tour.tour_name || tour.template_name;
       
       for (const admin of providerAdmins) {
-        const emailData = emailTemplates.qrCodeGenerated(
-          admin.first_name,
-          tourName,
-          qrCodeUrl,
-          tourType
+        // Queue email notification
+        await NotificationQueueService.queueEmailTemplate(
+          admin.email,
+          'qrCodeGenerated',
+          [admin.first_name, tourName, qrCodeUrl, tourType]
         );
 
-        await sendEmail(admin.email, emailData.subject, emailData.html);
+        // Queue push notification
+        await NotificationQueueService.queuePushNotification(
+          admin._id.toString(),
+          'QR Code Generated',
+          `QR code has been generated for ${tourName}`,
+          {
+            data: { 
+              type: 'qr_code_generated', 
+              tourId: tour._id.toString(),
+              tourType 
+            }
+          }
+        );
       }
 
       console.log(`QR code generation notifications sent for ${tourType} tour: ${tour._id}`);
@@ -56,17 +69,27 @@ class NotificationService {
         const tour = registration.custom_tour_id;
 
         if (tourist && tourist.is_active) {
-          const emailData = emailTemplates.tourQRCode(
-            tourist.first_name,
-            tour.tour_name,
-            tour.join_code,
-            qrCodeUrl,
-            joinQrCodeUrl,
-            tour.start_date,
-            tour.end_date
+          // Queue email notification
+          await NotificationQueueService.queueEmailTemplate(
+            tourist.email,
+            'tourQRCode',
+            [tourist.first_name, tour.tour_name, tour.join_code, qrCodeUrl, joinQrCodeUrl, tour.start_date, tour.end_date]
           );
 
-          await sendEmail(tourist.email, emailData.subject, emailData.html);
+          // Queue push notification
+          await NotificationQueueService.queuePushNotification(
+            tourist._id.toString(),
+            'Your Tour QR Code',
+            `QR code for ${tour.tour_name} is ready!`,
+            {
+              data: { 
+                type: 'tour_qr_code', 
+                tourId: tourId,
+                qrCodeUrl,
+                joinQrCodeUrl 
+              }
+            }
+          );
         }
       }
 

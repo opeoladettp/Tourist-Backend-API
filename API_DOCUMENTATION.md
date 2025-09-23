@@ -129,6 +129,21 @@ Authorization: Bearer <your-jwt-token>
 | GET    | `/qr-codes/tours/:id`                 | Get QR code information          | System Admin, Provider Admin |
 | DELETE | `/qr-codes/tours/:id`                 | Delete QR code                   | System Admin, Provider Admin |
 
+### Notifications
+
+| Method | Endpoint                              | Description                      | Access                       |
+| ------ | ------------------------------------- | -------------------------------- | ---------------------------- |
+| GET    | `/notifications/vapid-key`            | Get VAPID public key             | Public                       |
+| POST   | `/notifications/subscribe`            | Subscribe to push notifications  | Private                      |
+| POST   | `/notifications/unsubscribe`          | Unsubscribe from push            | Private                      |
+| GET    | `/notifications/subscriptions`        | Get user's subscriptions         | Private                      |
+| POST   | `/notifications/test`                 | Send test notification           | Private                      |
+| POST   | `/notifications/send`                 | Send notification to user        | System Admin, Provider Admin |
+| POST   | `/notifications/send-bulk`            | Send bulk notifications          | System Admin                 |
+| GET    | `/notifications/queue-stats`          | Get queue statistics             | System Admin                 |
+| POST   | `/notifications/cleanup`              | Clean up notification queues     | System Admin                 |
+| GET    | `/notifications/all-subscriptions`    | Get all subscriptions            | System Admin                 |
+
 ## Request/Response Examples
 
 ### Authentication
@@ -598,6 +613,138 @@ Response:
 	"message": "Featured image updated successfully",
 	"featured_image": "https://s3.amazonaws.com/bucket/calendar-images/1642248000000-uuid-activity-photo.jpg",
 	"uploaded_at": "2024-01-15T16:00:00.000Z"
+}
+```
+
+### Subscribe to Push Notifications
+
+```http
+POST /api/notifications/subscribe
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "endpoint": "https://fcm.googleapis.com/fcm/send/...",
+  "keys": {
+    "p256dh": "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
+    "auth": "tBHItJI5svbpez7KI4CCXg"
+  },
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+  "deviceType": "desktop",
+  "browser": "Chrome"
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Push subscription created successfully",
+	"subscription_id": "64a1b2c3d4e5f6789012350"
+}
+```
+
+### Send Notification to Specific User
+
+```http
+POST /api/notifications/send
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "userId": "64a1b2c3d4e5f6789012349",
+  "title": "Tour Update",
+  "body": "Your tour schedule has been updated. Please check the latest itinerary.",
+  "type": "tour_update",
+  "includeEmail": true
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Notification queued successfully",
+	"recipient": {
+		"id": "64a1b2c3d4e5f6789012349",
+		"name": "John Doe",
+		"email": "john@example.com"
+	},
+	"jobs": [
+		{
+			"type": "push",
+			"job_id": "1"
+		},
+		{
+			"type": "email",
+			"job_id": "2"
+		}
+	]
+}
+```
+
+### Send Bulk Notifications
+
+```http
+POST /api/notifications/send-bulk
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "userType": "tourist",
+  "title": "System Maintenance",
+  "body": "The system will be under maintenance from 2 AM to 4 AM UTC. Please plan accordingly.",
+  "type": "system_announcement",
+  "includeEmail": true
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Bulk notifications queued successfully",
+	"recipient_count": 150,
+	"jobs": [
+		{
+			"type": "push",
+			"count": 150
+		},
+		{
+			"type": "email",
+			"job_id": "3"
+		}
+	]
+}
+```
+
+### Get Queue Statistics
+
+```http
+GET /api/notifications/queue-stats
+Authorization: Bearer <token>
+```
+
+Response:
+
+```json
+{
+	"message": "Queue statistics retrieved successfully",
+	"stats": {
+		"email": {
+			"waiting": 5,
+			"active": 2,
+			"completed": 1250,
+			"failed": 3
+		},
+		"push": {
+			"waiting": 12,
+			"active": 8,
+			"completed": 2100,
+			"failed": 15
+		}
+	},
+	"timestamp": "2024-01-15T18:30:00.000Z"
 }
 ```
 
