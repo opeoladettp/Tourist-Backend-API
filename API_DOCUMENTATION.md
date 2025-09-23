@@ -103,6 +103,17 @@ Authorization: Bearer <your-jwt-token>
 | PUT    | `/registrations/:id/status` | Update registration status  | System Admin, Provider Admin       |
 | DELETE | `/registrations/:id`        | Unregister from tour        | Tourist (own), System Admin        |
 
+### Role Change Requests
+
+| Method | Endpoint                              | Description                      | Access       |
+| ------ | ------------------------------------- | -------------------------------- | ------------ |
+| POST   | `/role-change-requests`               | Submit role change request       | Tourist      |
+| GET    | `/role-change-requests`               | Get all role change requests     | System Admin |
+| GET    | `/role-change-requests/my`            | Get user's role change requests  | Tourist      |
+| GET    | `/role-change-requests/:id`           | Get role change request by ID    | System Admin |
+| PUT    | `/role-change-requests/:id/process`   | Process role change request      | System Admin |
+| DELETE | `/role-change-requests/:id/cancel`    | Cancel role change request       | Tourist      |
+
 ## Request/Response Examples
 
 ### Authentication
@@ -331,6 +342,106 @@ Response:
 		"status": "pending",
 		"notes": "Looking forward to this tour!",
 		"created_date": "2024-01-15T11:00:00.000Z"
+	}
+}
+```
+
+### Apply to Become New Provider
+
+```http
+POST /api/role-change-requests
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "request_type": "become_new_provider",
+  "proposed_provider_data": {
+    "provider_name": "Amazing Adventures Ltd",
+    "country": "United States",
+    "address": "123 Tourism Street, Adventure City, AC 12345",
+    "phone_number": "+1-555-0123",
+    "email_address": "contact@amazingadventures.com",
+    "corporate_tax_id": "TAX123456789",
+    "company_description": "We specialize in adventure tourism and cultural experiences.",
+    "logo_url": "https://example.com/logo.png"
+  },
+  "request_message": "I have 5 years of experience in tourism and would like to start my own tour company."
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Role change request submitted successfully",
+	"request": {
+		"_id": "64a1b2c3d4e5f6789012350",
+		"request_type": "become_new_provider",
+		"status": "pending",
+		"created_date": "2024-01-15T12:00:00.000Z"
+	}
+}
+```
+
+### Apply to Join Existing Provider
+
+```http
+POST /api/role-change-requests
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "request_type": "join_existing_provider",
+  "provider_id": "64a1b2c3d4e5f6789012345",
+  "request_message": "I would like to join your team as a provider administrator. I have experience in customer service and tour management."
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Role change request submitted successfully",
+	"request": {
+		"_id": "64a1b2c3d4e5f6789012351",
+		"request_type": "join_existing_provider",
+		"status": "pending",
+		"created_date": "2024-01-15T12:30:00.000Z"
+	}
+}
+```
+
+### Process Role Change Request (System Admin)
+
+```http
+PUT /api/role-change-requests/64a1b2c3d4e5f6789012350/process
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "status": "approved",
+  "admin_notes": "Application looks good. Welcome to the platform!"
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Role change request approved successfully",
+	"request": {
+		"_id": "64a1b2c3d4e5f6789012350",
+		"tourist_id": {
+			"_id": "64a1b2c3d4e5f6789012349",
+			"first_name": "John",
+			"last_name": "Doe",
+			"email": "john@example.com"
+		},
+		"request_type": "become_new_provider",
+		"status": "approved",
+		"admin_notes": "Application looks good. Welcome to the platform!",
+		"processed_date": "2024-01-15T14:00:00.000Z",
+		"created_date": "2024-01-15T12:00:00.000Z"
 	}
 }
 ```

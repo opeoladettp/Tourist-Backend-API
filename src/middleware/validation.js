@@ -129,8 +129,32 @@ const schemas = {
 
   // Role Change Request schemas
   roleChangeRequest: Joi.object({
-    provider_id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
+    request_type: Joi.string().valid('join_existing_provider', 'become_new_provider').required(),
+    provider_id: Joi.when('request_type', {
+      is: 'join_existing_provider',
+      then: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
+      otherwise: Joi.forbidden()
+    }),
+    proposed_provider_data: Joi.when('request_type', {
+      is: 'become_new_provider',
+      then: Joi.object({
+        provider_name: Joi.string().required(),
+        country: Joi.string().required(),
+        address: Joi.string().required(),
+        phone_number: Joi.string().required(),
+        email_address: Joi.string().email().required(),
+        corporate_tax_id: Joi.string(),
+        company_description: Joi.string(),
+        logo_url: Joi.string().uri()
+      }).required(),
+      otherwise: Joi.forbidden()
+    }),
     request_message: Joi.string()
+  }),
+
+  roleChangeDecision: Joi.object({
+    status: Joi.string().valid('approved', 'rejected').required(),
+    admin_notes: Joi.string()
   }),
 
   // Payment Config schemas

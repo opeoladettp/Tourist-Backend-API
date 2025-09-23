@@ -264,12 +264,12 @@ app.use('/api/tour-templates', require('./routes/tourTemplates'));
 app.use('/api/custom-tours', require('./routes/customTours'));
 app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/registrations', require('./routes/registrations'));
+app.use('/api/role-change-requests', require('./routes/roleChangeRequests'));
 
 // Additional routes (to be created)
 // app.use('/api/documents', require('./routes/documents'));
 // app.use('/api/broadcasts', require('./routes/broadcasts'));
 // app.use('/api/activities', require('./routes/defaultActivities'));
-// app.use('/api/role-requests', require('./routes/roleRequests'));
 // app.use('/api/config', require('./routes/paymentConfig'));
 
 // 404 handler

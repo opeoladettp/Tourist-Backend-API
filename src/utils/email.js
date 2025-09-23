@@ -80,6 +80,23 @@ const emailTemplates = {
       ${status === 'approved' ? '<p>Welcome to the team! You now have provider administrator access.</p>' : ''}
       <p>Best regards,<br>Tourlicity Team</p>
     `
+  }),
+
+  newProviderApplication: (providerName, touristName, touristEmail, message) => ({
+    subject: `New Provider Application from ${touristName}`,
+    html: `
+      <h2>New Provider Application</h2>
+      <p>Dear System Administrator,</p>
+      <p>A tourist has applied to become a new provider on the platform:</p>
+      <ul>
+        <li><strong>Applicant Name:</strong> ${touristName}</li>
+        <li><strong>Applicant Email:</strong> ${touristEmail}</li>
+        <li><strong>Proposed Company Name:</strong> ${providerName}</li>
+        <li><strong>Message:</strong> ${message || 'No message provided'}</li>
+      </ul>
+      <p>Please log in to your admin dashboard to review the full application details and approve/reject this request.</p>
+      <p>Best regards,<br>Tourlicity System</p>
+    `
   })
 };
 
@@ -104,4 +121,4 @@ const sendEmail = async (to, template, ...args) => {
   }
 };
 
-module.exports = { sendEmail };
+module.exports = { sendEmail, emailTemplates };
