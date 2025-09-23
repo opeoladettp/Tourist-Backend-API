@@ -83,6 +83,7 @@ const schemas = {
     activity: Joi.string().required(),
     activity_description: Joi.string(),
     activity_details: Joi.string(),
+    featured_image: Joi.string().uri().allow(null, ''),
     web_links: Joi.array().items(Joi.string().uri()),
     start_time: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
     end_time: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)

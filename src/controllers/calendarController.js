@@ -2,6 +2,7 @@ const CalendarEntry = require('../models/CalendarEntry');
 const CustomTour = require('../models/CustomTour');
 const TourTemplate = require('../models/TourTemplate');
 const DefaultActivity = require('../models/DefaultActivity');
+const ImageUploadService = require('../services/imageUploadService');
 const { createTourUpdate } = require('../utils/helpers');
 
 // Get calendar entries for tour template or custom tour
@@ -197,6 +198,200 @@ const deleteCalendarEntry = async (req, res) => {
   }
 };
 
+// Upload featured image for calendar entry
+const uploadFeaturedImage = async (req, res) => {
+  try {
+    const entryId = req.params.id;
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    // Validate image
+    const validation = ImageUploadService.validateImage(req.file);
+    if (!validation.isValid) {
+      return res.status(400).json({ 
+        error: 'Invalid image file',
+        details: validation.errors
+      });
+    }
+
+    // Find calendar entry
+    const entry = await CalendarEntry.findById(entryId);
+    if (!entry) {
+      return res.status(404).json({ error: 'Calendar entry not found' });
+    }
+
+    // Check permissions
+    if (entry.custom_tour_id) {
+      const tour = await CustomTour.findById(entry.custom_tour_id);
+      if (req.user.user_type === 'provider_admin' && 
+          req.user.provider_id?.toString() !== tour.provider_id.toString()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    // Delete old image if exists
+    if (entry.featured_image) {
+      await ImageUploadService.deleteImage(entry.featured_image);
+    }
+
+    // Update entry with new image URL (multer-s3 provides the location)
+    entry.featured_image = req.file.location;
+    entry.featured_image_uploaded_at = new Date();
+    await entry.save();
+
+    // Create tour update if this is for a custom tour
+    if (entry.custom_tour_id) {
+      await createTourUpdate(
+        entry.custom_tour_id,
+        req.user._id,
+        'calendar_entry_updated',
+        `Featured image added to activity: ${entry.activity}`
+      );
+    }
+
+    res.json({
+      message: 'Featured image uploaded successfully',
+      featured_image: entry.featured_image,
+      uploaded_at: entry.featured_image_uploaded_at
+    });
+  } catch (error) {
+    console.error('Upload featured image error:', error);
+    res.status(500).json({ error: 'Failed to upload featured image' });
+  }
+};
+
+// Delete featured image for calendar entry
+const deleteFeaturedImage = async (req, res) => {
+  try {
+    const entryId = req.params.id;
+
+    // Find calendar entry
+    const entry = await CalendarEntry.findById(entryId);
+    if (!entry) {
+      return res.status(404).json({ error: 'Calendar entry not found' });
+    }
+
+    // Check permissions
+    if (entry.custom_tour_id) {
+      const tour = await CustomTour.findById(entry.custom_tour_id);
+      if (req.user.user_type === 'provider_admin' && 
+          req.user.provider_id?.toString() !== tour.provider_id.toString()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    if (!entry.featured_image) {
+      return res.status(400).json({ error: 'No featured image to delete' });
+    }
+
+    // Delete image from S3
+    await ImageUploadService.deleteImage(entry.featured_image);
+
+    // Update entry
+    entry.featured_image = null;
+    entry.featured_image_uploaded_at = null;
+    await entry.save();
+
+    // Create tour update if this is for a custom tour
+    if (entry.custom_tour_id) {
+      await createTourUpdate(
+        entry.custom_tour_id,
+        req.user._id,
+        'calendar_entry_updated',
+        `Featured image removed from activity: ${entry.activity}`
+      );
+    }
+
+    res.json({ message: 'Featured image deleted successfully' });
+  } catch (error) {
+    console.error('Delete featured image error:', error);
+    res.status(500).json({ error: 'Failed to delete featured image' });
+  }
+};
+
+// Get presigned URL for direct upload
+const getPresignedUrl = async (req, res) => {
+  try {
+    const { fileName, contentType = 'image/jpeg' } = req.body;
+    
+    if (!fileName) {
+      return res.status(400).json({ error: 'fileName is required' });
+    }
+
+    const presignedData = await ImageUploadService.generatePresignedUrl(
+      'calendar-images',
+      fileName,
+      contentType
+    );
+
+    res.json({
+      message: 'Presigned URL generated successfully',
+      ...presignedData
+    });
+  } catch (error) {
+    console.error('Get presigned URL error:', error);
+    res.status(500).json({ error: 'Failed to generate presigned URL' });
+  }
+};
+
+// Update calendar entry with presigned uploaded image
+const updateWithPresignedImage = async (req, res) => {
+  try {
+    const entryId = req.params.id;
+    const { imageUrl } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({ error: 'imageUrl is required' });
+    }
+
+    // Find calendar entry
+    const entry = await CalendarEntry.findById(entryId);
+    if (!entry) {
+      return res.status(404).json({ error: 'Calendar entry not found' });
+    }
+
+    // Check permissions
+    if (entry.custom_tour_id) {
+      const tour = await CustomTour.findById(entry.custom_tour_id);
+      if (req.user.user_type === 'provider_admin' && 
+          req.user.provider_id?.toString() !== tour.provider_id.toString()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    // Delete old image if exists
+    if (entry.featured_image) {
+      await ImageUploadService.deleteImage(entry.featured_image);
+    }
+
+    // Update entry
+    entry.featured_image = imageUrl;
+    entry.featured_image_uploaded_at = new Date();
+    await entry.save();
+
+    // Create tour update if this is for a custom tour
+    if (entry.custom_tour_id) {
+      await createTourUpdate(
+        entry.custom_tour_id,
+        req.user._id,
+        'calendar_entry_updated',
+        `Featured image updated for activity: ${entry.activity}`
+      );
+    }
+
+    res.json({
+      message: 'Featured image updated successfully',
+      featured_image: entry.featured_image,
+      uploaded_at: entry.featured_image_uploaded_at
+    });
+  } catch (error) {
+    console.error('Update with presigned image error:', error);
+    res.status(500).json({ error: 'Failed to update with presigned image' });
+  }
+};
+
 // Get default activities for selection
 const getDefaultActivities = async (req, res) => {
   try {
@@ -227,5 +422,9 @@ module.exports = {
   createCalendarEntry,
   updateCalendarEntry,
   deleteCalendarEntry,
+  uploadFeaturedImage,
+  deleteFeaturedImage,
+  getPresignedUrl,
+  updateWithPresignedImage,
   getDefaultActivities
 };

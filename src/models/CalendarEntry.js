@@ -19,6 +19,14 @@ const calendarEntrySchema = new mongoose.Schema({
     },
     activity_description: String,
     activity_details: String,
+    featured_image: {
+        type: String, // URL to featured image in S3
+        default: null
+    },
+    featured_image_uploaded_at: {
+        type: Date,
+        default: null
+    },
     web_links: [String],
     start_time: String, // HH:MM format
     end_time: String,   // HH:MM format

@@ -91,6 +91,10 @@ Authorization: Bearer <your-jwt-token>
 | POST   | `/calendar`                    | Create calendar entry    | System Admin, Provider Admin |
 | PUT    | `/calendar/:id`                | Update calendar entry    | System Admin, Provider Admin |
 | DELETE | `/calendar/:id`                | Delete calendar entry    | System Admin, Provider Admin |
+| POST   | `/calendar/:id/featured-image` | Upload featured image     | System Admin, Provider Admin |
+| DELETE | `/calendar/:id/featured-image` | Delete featured image     | System Admin, Provider Admin |
+| POST   | `/calendar/presigned-url`      | Get presigned URL         | System Admin, Provider Admin |
+| PUT    | `/calendar/:id/presigned-image`| Update with presigned image | System Admin, Provider Admin |
 
 ### Registrations
 
@@ -527,6 +531,73 @@ Response:
 	"tour_name": "Amazing Paris Adventure",
 	"tour_id": "64a1b2c3d4e5f6789012347",
 	"join_code": "ABC123"
+}
+```
+
+### Upload Featured Image for Calendar Entry
+
+```http
+POST /api/calendar/64a1b2c3d4e5f6789012348/featured-image
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+[Binary image data in form field 'featured_image']
+```
+
+Response:
+
+```json
+{
+	"message": "Featured image uploaded successfully",
+	"featured_image": "https://s3.amazonaws.com/bucket/calendar-images/1642248000000-uuid-activity.jpg",
+	"uploaded_at": "2024-01-15T16:00:00.000Z"
+}
+```
+
+### Get Presigned URL for Direct Upload
+
+```http
+POST /api/calendar/presigned-url
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "fileName": "activity-photo.jpg",
+  "contentType": "image/jpeg"
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Presigned URL generated successfully",
+	"presignedUrl": "https://s3.amazonaws.com/bucket/calendar-images/key?AWSAccessKeyId=...",
+	"publicUrl": "https://s3.amazonaws.com/bucket/calendar-images/1642248000000-uuid-activity-photo.jpg",
+	"key": "calendar-images/1642248000000-uuid-activity-photo.jpg",
+	"expiresIn": 3600
+}
+```
+
+### Update Calendar Entry with Presigned Image
+
+```http
+PUT /api/calendar/64a1b2c3d4e5f6789012348/presigned-image
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "imageUrl": "https://s3.amazonaws.com/bucket/calendar-images/1642248000000-uuid-activity-photo.jpg"
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Featured image updated successfully",
+	"featured_image": "https://s3.amazonaws.com/bucket/calendar-images/1642248000000-uuid-activity-photo.jpg",
+	"uploaded_at": "2024-01-15T16:00:00.000Z"
 }
 ```
 
