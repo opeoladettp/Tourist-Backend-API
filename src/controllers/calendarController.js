@@ -236,8 +236,11 @@ const uploadFeaturedImage = async (req, res) => {
       await ImageUploadService.deleteImage(entry.featured_image);
     }
 
-    // Update entry with new image URL (multer-s3 provides the location)
-    entry.featured_image = req.file.location;
+    // Update entry with new image URL
+    // For S3: req.file.location, For local: construct URL from path
+    const imageUrl = req.file.location || `${process.env.BASE_URL || 'http://localhost:5000'}/uploads/${req.file.path.replace(/\\/g, '/')}`;
+    
+    entry.featured_image = imageUrl;
     entry.featured_image_uploaded_at = new Date();
     await entry.save();
 

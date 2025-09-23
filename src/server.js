@@ -43,6 +43,9 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Serve static files for local uploads (when S3 is not configured)
+app.use('/uploads', express.static('uploads'));
+
 // Compression middleware
 app.use(compression());
 

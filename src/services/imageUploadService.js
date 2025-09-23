@@ -20,6 +20,47 @@ class ImageUploadService {
    * @returns {Object} - Multer middleware
    */
   static createUploadMiddleware(folder = 'images', allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'], maxSize = 5 * 1024 * 1024) {
+    // Check if S3 is configured
+    if (!process.env.S3_BUCKET_NAME || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+      console.log('S3 not configured, using local storage for file uploads');
+      
+      // Fallback to local storage
+      const upload = multer({
+        storage: multer.diskStorage({
+          destination: function (req, file, cb) {
+            const uploadPath = `uploads/${folder}`;
+            // Create directory if it doesn't exist
+            const fs = require('fs');
+            if (!fs.existsSync('uploads')) {
+              fs.mkdirSync('uploads');
+            }
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            cb(null, uploadPath);
+          },
+          filename: function (req, file, cb) {
+            const fileExtension = path.extname(file.originalname);
+            const fileName = `${Date.now()}-${uuidv4()}${fileExtension}`;
+            cb(null, fileName);
+          }
+        }),
+        fileFilter: function (req, file, cb) {
+          if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+          } else {
+            cb(new Error(`Invalid file type. Allowed types: ${allowedTypes.join(', ')}`), false);
+          }
+        },
+        limits: {
+          fileSize: maxSize
+        }
+      });
+
+      return upload;
+    }
+
+    // S3 storage configuration
     const upload = multer({
       storage: multerS3({
         s3: s3,

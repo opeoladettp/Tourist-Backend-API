@@ -11,13 +11,18 @@ const s3 = new AWS.S3({
 
 class QRCodeService {
   /**
-   * Generate QR code for a tour and upload to S3
+   * Generate QR code for a tour and upload to S3 or local storage
    * @param {Object} tourData - Tour data to encode in QR code
    * @param {string} tourType - 'template' or 'custom'
-   * @returns {Promise<string>} - S3 URL of the uploaded QR code
+   * @returns {Promise<string>} - S3 URL or local URL of the uploaded QR code
    */
   static async generateTourQRCode(tourData, tourType = 'custom') {
     try {
+      // Check if S3 is configured
+      if (!process.env.S3_BUCKET_NAME || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+        console.log('S3 not configured, QR codes will be stored locally');
+        return await this.generateTourQRCodeLocal(tourData, tourType);
+      }
       // Create QR code data object
       const qrData = {
         type: tourType,
@@ -73,11 +78,16 @@ class QRCodeService {
   /**
    * Generate QR code with custom data
    * @param {Object} customData - Custom data to encode
-   * @param {string} filename - Custom filename for S3
-   * @returns {Promise<string>} - S3 URL of the uploaded QR code
+   * @param {string} filename - Custom filename
+   * @returns {Promise<string>} - S3 URL or local URL of the uploaded QR code
    */
   static async generateCustomQRCode(customData, filename) {
     try {
+      // Check if S3 is configured
+      if (!process.env.S3_BUCKET_NAME || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+        return await this.generateCustomQRCodeLocal(customData, filename);
+      }
+
       const qrCodeBuffer = await QRCode.toBuffer(JSON.stringify(customData), {
         margin: 1,
         color: {
@@ -108,6 +118,56 @@ class QRCodeService {
     } catch (error) {
       console.error('Error generating custom QR code:', error);
       throw new Error('Failed to generate custom QR code');
+    }
+  }
+
+  /**
+   * Generate QR code with custom data locally
+   * @param {Object} customData - Custom data to encode
+   * @param {string} filename - Custom filename
+   * @returns {Promise<string>} - Local URL of the uploaded QR code
+   */
+  static async generateCustomQRCodeLocal(customData, filename) {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+
+      const qrCodeBuffer = await QRCode.toBuffer(JSON.stringify(customData), {
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        width: 512,
+        errorCorrectionLevel: 'M'
+      });
+
+      // Create uploads directory if it doesn't exist
+      const uploadsDir = 'uploads/qr-codes';
+      if (!fs.existsSync('uploads')) {
+        fs.mkdirSync('uploads');
+      }
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      // Generate unique filename
+      const uniqueFilename = `${filename}-${uuidv4()}.png`;
+      const filePath = path.join(uploadsDir, uniqueFilename);
+
+      // Write file to local storage
+      fs.writeFileSync(filePath, qrCodeBuffer);
+
+      // Return local URL
+      const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+      const localUrl = `${baseUrl}/uploads/qr-codes/${uniqueFilename}`;
+
+      console.log(`Custom QR code generated locally: ${uniqueFilename}`);
+      return localUrl;
+
+    } catch (error) {
+      console.error('Error generating local custom QR code:', error);
+      throw new Error('Failed to generate local custom QR code');
     }
   }
 
@@ -166,6 +226,70 @@ class QRCodeService {
     } catch (error) {
       console.error('Error regenerating QR code:', error);
       throw new Error('Failed to regenerate QR code');
+    }
+  }
+
+  /**
+   * Generate QR code locally (fallback when S3 not configured)
+   * @param {Object} tourData - Tour data to encode in QR code
+   * @param {string} tourType - 'template' or 'custom'
+   * @returns {Promise<string>} - Local URL of the uploaded QR code
+   */
+  static async generateTourQRCodeLocal(tourData, tourType = 'custom') {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+
+      // Create QR code data object
+      const qrData = {
+        type: tourType,
+        id: tourData._id,
+        name: tourData.tour_name || tourData.template_name,
+        joinCode: tourData.join_code,
+        startDate: tourData.start_date,
+        endDate: tourData.end_date,
+        provider: tourData.provider_id?.provider_name || 'Unknown Provider',
+        url: `${process.env.FRONTEND_URL || 'https://tourlicity.com'}/tours/${tourData._id}`,
+        generatedAt: new Date().toISOString()
+      };
+
+      // Generate QR code as buffer
+      const qrCodeBuffer = await QRCode.toBuffer(JSON.stringify(qrData), {
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        width: 512,
+        errorCorrectionLevel: 'M'
+      });
+
+      // Create uploads directory if it doesn't exist
+      const uploadsDir = 'uploads/qr-codes';
+      if (!fs.existsSync('uploads')) {
+        fs.mkdirSync('uploads');
+      }
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      // Generate unique filename
+      const filename = `${tourType}-${tourData._id}-${uuidv4()}.png`;
+      const filePath = path.join(uploadsDir, filename);
+
+      // Write file to local storage
+      fs.writeFileSync(filePath, qrCodeBuffer);
+
+      // Return local URL
+      const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+      const localUrl = `${baseUrl}/uploads/qr-codes/${filename}`;
+
+      console.log(`QR code generated locally for ${tourType} tour: ${tourData._id}`);
+      return localUrl;
+
+    } catch (error) {
+      console.error('Error generating local QR code:', error);
+      throw new Error('Failed to generate local QR code');
     }
   }
 
