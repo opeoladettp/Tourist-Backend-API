@@ -286,6 +286,7 @@ app.use('/api/registrations', require('./routes/registrations'));
 app.use('/api/role-change-requests', require('./routes/roleChangeRequests'));
 app.use('/api/qr-codes', require('./routes/qrCodes'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/uploads', require('./routes/uploads'));
 
 // Additional routes (to be created)
 // app.use('/api/documents', require('./routes/documents'));

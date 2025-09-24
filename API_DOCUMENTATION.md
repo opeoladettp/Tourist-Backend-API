@@ -97,6 +97,17 @@ Authorization: Bearer <your-jwt-token>
 | POST   | `/calendar/presigned-url`       | Get presigned URL           | System Admin, Provider Admin |
 | PUT    | `/calendar/:id/presigned-image` | Update with presigned image | System Admin, Provider Admin |
 
+### File Uploads
+
+| Method | Endpoint                        | Description                    | Access                             |
+| ------ | ------------------------------- | ------------------------------ | ---------------------------------- |
+| POST   | `/uploads/profile-picture`      | Upload profile picture         | Private                            |
+| POST   | `/uploads/tour-image`           | Upload tour image              | System Admin, Provider Admin       |
+| POST   | `/uploads/multiple-tour-images` | Upload multiple tour images    | System Admin, Provider Admin       |
+| POST   | `/uploads/general`              | Upload general file            | Private                            |
+| POST   | `/uploads/presigned-url`        | Get presigned URL for S3       | Private                            |
+| DELETE | `/uploads/delete`               | Delete uploaded file           | Private                            |
+
 ### Registrations
 
 | Method | Endpoint                    | Description                 | Access                             |
@@ -655,6 +666,100 @@ Response:
 	"message": "Featured image updated successfully",
 	"featured_image": "https://s3.amazonaws.com/bucket/calendar-images/1642248000000-uuid-activity-photo.jpg",
 	"uploaded_at": "2024-01-15T16:00:00.000Z"
+}
+```
+
+## File Upload Examples
+
+### Upload Profile Picture
+
+```http
+POST /api/uploads/profile-picture
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+--boundary
+Content-Disposition: form-data; name="profile_picture"; filename="my-avatar.jpg"
+Content-Type: image/jpeg
+
+[binary image data]
+--boundary--
+```
+
+Response:
+
+```json
+{
+	"message": "Profile picture uploaded successfully",
+	"fileUrl": "https://s3.amazonaws.com/bucket/profile-pictures/1642248000000-uuid-my-avatar.jpg",
+	"fileName": "my-avatar.jpg",
+	"fileSize": 245760,
+	"uploadedAt": "2024-01-15T16:00:00.000Z",
+	"user": {
+		"_id": "64a1b2c3d4e5f6789012345",
+		"email": "user@example.com",
+		"first_name": "John",
+		"last_name": "Doe",
+		"profile_picture": "https://s3.amazonaws.com/bucket/profile-pictures/1642248000000-uuid-my-avatar.jpg"
+	}
+}
+```
+
+### Upload Tour Image
+
+```http
+POST /api/uploads/tour-image
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+--boundary
+Content-Disposition: form-data; name="tour_image"; filename="paris-tour.jpg"
+Content-Type: image/jpeg
+
+[binary image data]
+--boundary
+Content-Disposition: form-data; name="image_type"
+
+features
+--boundary--
+```
+
+Response:
+
+```json
+{
+	"message": "Tour features uploaded successfully",
+	"fileUrl": "https://s3.amazonaws.com/bucket/tour-images/1642248000000-uuid-paris-tour.jpg",
+	"fileName": "paris-tour.jpg",
+	"fileSize": 512000,
+	"imageType": "features",
+	"uploadedAt": "2024-01-15T16:00:00.000Z"
+}
+```
+
+### Get Presigned URL for Direct Upload
+
+```http
+POST /api/uploads/presigned-url
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "fileName": "large-tour-video.mp4",
+  "fileType": "general",
+  "contentType": "video/mp4"
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Presigned URL generated successfully",
+	"presignedUrl": "https://s3.amazonaws.com/bucket/general-uploads/key?AWSAccessKeyId=...",
+	"publicUrl": "https://s3.amazonaws.com/bucket/general-uploads/1642248000000-uuid-large-tour-video.mp4",
+	"key": "general-uploads/1642248000000-uuid-large-tour-video.mp4",
+	"expiresIn": 3600
 }
 ```
 

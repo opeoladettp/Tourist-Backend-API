@@ -223,14 +223,24 @@ class ImageUploadService {
 
   /**
    * Generate presigned URL for direct upload
-   * @param {string} folder - S3 folder
    * @param {string} fileName - File name
+   * @param {string} fileType - File type for folder organization
    * @param {string} contentType - MIME type
    * @param {number} expiresIn - URL expiration in seconds
    * @returns {Promise<Object>} - Presigned URL data
    */
-  static async generatePresignedUrl(folder = 'images', fileName, contentType = 'image/jpeg', expiresIn = 3600) {
+  static async generatePresignedUrl(fileName, fileType = 'general', contentType = 'image/jpeg', expiresIn = 3600) {
     try {
+      // Map file types to folders
+      const folderMap = {
+        'profile-picture': 'profile-pictures',
+        'tour-image': 'tour-images',
+        'calendar-image': 'calendar-images',
+        'document': 'documents',
+        'general': 'general-uploads'
+      };
+
+      const folder = folderMap[fileType] || 'general-uploads';
       const key = `${folder}/${Date.now()}-${uuidv4()}-${fileName}`;
       
       const params = {
@@ -253,6 +263,29 @@ class ImageUploadService {
     } catch (error) {
       console.error('Error generating presigned URL:', error);
       throw new Error('Failed to generate presigned URL');
+    }
+  }
+
+  /**
+   * Delete file from S3 by key
+   * @param {string} key - S3 object key
+   * @returns {Promise<boolean>} - Success status
+   */
+  static async deleteFile(key) {
+    try {
+      if (!key) return true;
+
+      const deleteParams = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: key
+      };
+
+      await s3.deleteObject(deleteParams).promise();
+      console.log(`File deleted from S3: ${key}`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      throw error;
     }
   }
 
