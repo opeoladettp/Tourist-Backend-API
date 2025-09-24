@@ -121,6 +121,18 @@ Authorization: Bearer <your-jwt-token>
 | PATCH  | `/activities/:id/status`     | Toggle activity status         | System Admin                 |
 | DELETE | `/activities/:id`            | Delete default activity        | System Admin                 |
 
+### Broadcasts
+
+| Method | Endpoint                     | Description                    | Access                       |
+| ------ | ---------------------------- | ------------------------------ | ---------------------------- |
+| GET    | `/broadcasts`                | Get all broadcasts             | System Admin, Provider Admin |
+| GET    | `/broadcasts/tour/:tourId`   | Get broadcasts for specific tour | All users (registered)     |
+| GET    | `/broadcasts/:id`            | Get broadcast by ID            | System Admin, Provider Admin |
+| POST   | `/broadcasts`                | Create new broadcast           | System Admin, Provider Admin |
+| PUT    | `/broadcasts/:id`            | Update broadcast               | System Admin, Provider Admin |
+| PATCH  | `/broadcasts/:id/publish`    | Publish broadcast (send notifications) | System Admin, Provider Admin |
+| DELETE | `/broadcasts/:id`            | Delete broadcast               | System Admin, Provider Admin |
+
 ### Registrations
 
 | Method | Endpoint                    | Description                 | Access                             |
@@ -909,6 +921,125 @@ Response:
 			"count": 2
 		}
 	]
+}
+```
+
+## Broadcast Examples
+
+### Create Broadcast
+
+```http
+POST /api/broadcasts
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "custom_tour_id": "64a1b2c3d4e5f6789012347",
+  "message": "Welcome to our Paris Adventure! Please meet at the hotel lobby at 8 AM tomorrow.",
+  "status": "draft"
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Broadcast created successfully",
+	"broadcast": {
+		"_id": "64a1b2c3d4e5f6789012360",
+		"custom_tour_id": {
+			"_id": "64a1b2c3d4e5f6789012347",
+			"tour_name": "Amazing Paris Adventure",
+			"start_date": "2024-06-01T00:00:00.000Z",
+			"end_date": "2024-06-07T00:00:00.000Z",
+			"join_code": "ABC123"
+		},
+		"provider_id": {
+			"_id": "64a1b2c3d4e5f6789012345",
+			"provider_name": "Amazing Tours Co."
+		},
+		"message": "Welcome to our Paris Adventure! Please meet at the hotel lobby at 8 AM tomorrow.",
+		"status": "draft",
+		"created_by": {
+			"_id": "64a1b2c3d4e5f6789012346",
+			"first_name": "Provider",
+			"last_name": "Admin",
+			"email": "provider@example.com"
+		},
+		"created_date": "2024-01-15T10:00:00.000Z",
+		"updated_date": "2024-01-15T10:00:00.000Z"
+	}
+}
+```
+
+### Publish Broadcast (Send to Tourists)
+
+```http
+PATCH /api/broadcasts/64a1b2c3d4e5f6789012360/publish
+Authorization: Bearer <token>
+```
+
+Response:
+
+```json
+{
+	"message": "Broadcast published successfully",
+	"broadcast": {
+		"_id": "64a1b2c3d4e5f6789012360",
+		"custom_tour_id": {
+			"_id": "64a1b2c3d4e5f6789012347",
+			"tour_name": "Amazing Paris Adventure"
+		},
+		"message": "Welcome to our Paris Adventure! Please meet at the hotel lobby at 8 AM tomorrow.",
+		"status": "published",
+		"created_date": "2024-01-15T10:00:00.000Z",
+		"updated_date": "2024-01-15T10:05:00.000Z"
+	}
+}
+```
+
+### Get Broadcasts for Tour (Tourist View)
+
+```http
+GET /api/broadcasts/tour/64a1b2c3d4e5f6789012347
+Authorization: Bearer <tourist_token>
+```
+
+Response:
+
+```json
+{
+	"data": [
+		{
+			"_id": "64a1b2c3d4e5f6789012360",
+			"custom_tour_id": {
+				"_id": "64a1b2c3d4e5f6789012347",
+				"tour_name": "Amazing Paris Adventure",
+				"start_date": "2024-06-01T00:00:00.000Z",
+				"end_date": "2024-06-07T00:00:00.000Z"
+			},
+			"provider_id": {
+				"_id": "64a1b2c3d4e5f6789012345",
+				"provider_name": "Amazing Tours Co."
+			},
+			"message": "Welcome to our Paris Adventure! Please meet at the hotel lobby at 8 AM tomorrow.",
+			"status": "published",
+			"created_by": {
+				"_id": "64a1b2c3d4e5f6789012346",
+				"first_name": "Provider",
+				"last_name": "Admin"
+			},
+			"created_date": "2024-01-15T10:00:00.000Z"
+		}
+	],
+	"pagination": {
+		"current_page": 1,
+		"total_pages": 1,
+		"total_items": 1,
+		"items_per_page": 10,
+		"has_next": false,
+		"has_prev": false
+	}
 }
 ```
 

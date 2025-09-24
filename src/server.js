@@ -288,10 +288,10 @@ app.use('/api/qr-codes', require('./routes/qrCodes'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/activities', require('./routes/defaultActivities'));
+app.use('/api/broadcasts', require('./routes/broadcasts'));
 
 // Additional routes (to be created)
 // app.use('/api/documents', require('./routes/documents'));
-// app.use('/api/broadcasts', require('./routes/broadcasts'));
 // app.use('/api/config', require('./routes/paymentConfig'));
 
 // 404 handler
