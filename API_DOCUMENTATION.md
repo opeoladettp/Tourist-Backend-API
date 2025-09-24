@@ -108,6 +108,19 @@ Authorization: Bearer <your-jwt-token>
 | POST   | `/uploads/presigned-url`        | Get presigned URL for S3       | Private                            |
 | DELETE | `/uploads/delete`               | Delete uploaded file           | Private                            |
 
+### Default Activities
+
+| Method | Endpoint                     | Description                    | Access                       |
+| ------ | ---------------------------- | ------------------------------ | ---------------------------- |
+| GET    | `/activities`                | Get all default activities     | System Admin, Provider Admin |
+| GET    | `/activities/selection`      | Get activities for selection   | System Admin, Provider Admin |
+| GET    | `/activities/categories`     | Get activity categories        | System Admin, Provider Admin |
+| GET    | `/activities/:id`            | Get default activity by ID     | System Admin, Provider Admin |
+| POST   | `/activities`                | Create new default activity    | System Admin                 |
+| PUT    | `/activities/:id`            | Update default activity        | System Admin                 |
+| PATCH  | `/activities/:id/status`     | Toggle activity status         | System Admin                 |
+| DELETE | `/activities/:id`            | Delete default activity        | System Admin                 |
+
 ### Registrations
 
 | Method | Endpoint                    | Description                 | Access                             |
@@ -760,6 +773,142 @@ Response:
 	"publicUrl": "https://s3.amazonaws.com/bucket/general-uploads/1642248000000-uuid-large-tour-video.mp4",
 	"key": "general-uploads/1642248000000-uuid-large-tour-video.mp4",
 	"expiresIn": 3600
+}
+```
+
+## Default Activities Examples
+
+### Create Default Activity
+
+```http
+POST /api/activities
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "activity_name": "Eiffel Tower Visit",
+  "description": "Visit the iconic Eiffel Tower with guided tour and photo opportunities",
+  "typical_duration_hours": 2.5,
+  "category": "sightseeing",
+  "is_active": true
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Default activity created successfully",
+	"activity": {
+		"_id": "64a1b2c3d4e5f6789012350",
+		"activity_name": "Eiffel Tower Visit",
+		"description": "Visit the iconic Eiffel Tower with guided tour and photo opportunities",
+		"typical_duration_hours": 2.5,
+		"category": "sightseeing",
+		"is_active": true,
+		"created_by": {
+			"_id": "64a1b2c3d4e5f6789012345",
+			"first_name": "Admin",
+			"last_name": "User",
+			"email": "admin@example.com"
+		},
+		"created_date": "2024-01-15T10:00:00.000Z",
+		"updated_date": "2024-01-15T10:00:00.000Z"
+	}
+}
+```
+
+### Get Activities for Selection
+
+```http
+GET /api/activities/selection?category=sightseeing&search=tower
+Authorization: Bearer <token>
+```
+
+Response:
+
+```json
+{
+	"activities": [
+		{
+			"_id": "64a1b2c3d4e5f6789012350",
+			"activity_name": "Eiffel Tower Visit",
+			"description": "Visit the iconic Eiffel Tower with guided tour and photo opportunities",
+			"typical_duration_hours": 2.5,
+			"category": "sightseeing"
+		},
+		{
+			"_id": "64a1b2c3d4e5f6789012351",
+			"activity_name": "Tower Bridge Experience",
+			"description": "Explore the famous Tower Bridge in London",
+			"typical_duration_hours": 1.5,
+			"category": "sightseeing"
+		}
+	]
+}
+```
+
+### Get Activity Categories
+
+```http
+GET /api/activities/categories
+Authorization: Bearer <token>
+```
+
+Response:
+
+```json
+{
+	"categories": [
+		{
+			"name": "sightseeing",
+			"count": 15
+		},
+		{
+			"name": "cultural",
+			"count": 8
+		},
+		{
+			"name": "adventure",
+			"count": 5
+		},
+		{
+			"name": "dining",
+			"count": 12
+		},
+		{
+			"name": "transportation",
+			"count": 3
+		},
+		{
+			"name": "accommodation",
+			"count": 2
+		},
+		{
+			"name": "entertainment",
+			"count": 7
+		},
+		{
+			"name": "shopping",
+			"count": 4
+		},
+		{
+			"name": "educational",
+			"count": 6
+		},
+		{
+			"name": "religious",
+			"count": 3
+		},
+		{
+			"name": "nature",
+			"count": 9
+		},
+		{
+			"name": "other",
+			"count": 2
+		}
+	]
 }
 ```
 
