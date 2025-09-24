@@ -33,6 +33,7 @@ Authorization: Bearer <your-jwt-token>
 | POST   | `/auth/google`  | Google OAuth login/register | Public  |
 | GET    | `/auth/profile` | Get current user profile    | Private |
 | PUT    | `/auth/profile` | Update user profile         | Private |
+| PUT    | `/auth/reset-google-picture` | Reset to Google profile picture | Private |
 | POST   | `/auth/logout`  | Logout user                 | Private |
 
 ### Users
@@ -158,7 +159,8 @@ Content-Type: application/json
   "google_id": "123456789",
   "email": "user@example.com",
   "first_name": "John",
-  "last_name": "Doe"
+  "last_name": "Doe",
+  "picture": "https://lh3.googleusercontent.com/a/default-user=s96-c"
 }
 ```
 
@@ -173,6 +175,7 @@ Response:
 		"email": "user@example.com",
 		"first_name": "John",
 		"last_name": "Doe",
+		"profile_picture": "https://lh3.googleusercontent.com/a/default-user=s96-c",
 		"user_type": "tourist",
 		"is_active": true
 	},
@@ -222,6 +225,44 @@ Response:
 	}
 }
 ```
+
+#### Reset Profile Picture to Google Picture
+
+```http
+PUT /api/auth/reset-google-picture
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "google_picture_url": "https://lh3.googleusercontent.com/a/default-user=s96-c"
+}
+```
+
+Response:
+
+```json
+{
+	"message": "Profile picture reset to Google picture successfully",
+	"user": {
+		"_id": "64a1b2c3d4e5f6789012345",
+		"email": "user@example.com",
+		"first_name": "John",
+		"last_name": "Doe",
+		"profile_picture": "https://lh3.googleusercontent.com/a/default-user=s96-c",
+		"user_type": "tourist",
+		"is_active": true
+	}
+}
+```
+
+#### Profile Picture Behavior
+
+**Google OAuth Profile Pictures:**
+- When users authenticate with Google OAuth, their Google profile picture is automatically set if they don't have one
+- If users already have a Google profile picture, it gets updated with the latest from Google
+- Custom profile pictures (non-Google URLs) are **never** overwritten by Google OAuth
+- Users can manually update their profile picture to any custom URL via the profile update endpoint
+- Users can reset their profile picture back to their Google picture using the reset endpoint
 
 ### Create Custom Tour
 

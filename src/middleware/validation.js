@@ -12,7 +12,8 @@ const schemas = {
     date_of_birth: Joi.date(),
     gender: Joi.string().valid('male', 'female', 'other'),
     phone_number: Joi.string().max(20),
-    google_id: Joi.string()
+    google_id: Joi.string(),
+    picture: Joi.string().uri().allow(null, '').optional()
   }),
 
   userUpdate: Joi.object({

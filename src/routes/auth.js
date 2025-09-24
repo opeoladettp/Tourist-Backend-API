@@ -40,6 +40,10 @@ const authController = require('../controllers/authController');
  *           type: string
  *         last_name:
  *           type: string
+ *         picture:
+ *           type: string
+ *           format: uri
+ *           description: Google profile picture URL (optional)
  */
 
 /**
@@ -157,6 +161,49 @@ router.put('/profile',
   authenticate,
   validate(schemas.userUpdate),
   authController.updateProfile
+);
+
+/**
+ * @swagger
+ * /api/auth/reset-google-picture:
+ *   put:
+ *     summary: Reset profile picture to Google picture
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - google_picture_url
+ *             properties:
+ *               google_picture_url:
+ *                 type: string
+ *                 format: uri
+ *                 description: Google profile picture URL
+ *     responses:
+ *       200:
+ *         description: Profile picture reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid request or user not linked to Google
+ *       401:
+ *         description: Unauthorized
+ */
+router.put('/reset-google-picture',
+  authenticate,
+  authController.resetToGooglePicture
 );
 
 /**
