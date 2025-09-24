@@ -122,6 +122,27 @@ async function testAPI() {
     console.log(`❌ Google OAuth error: ${error.message}`);
   }
   
+  console.log('');
+  
+  // Test Default Activities endpoint
+  try {
+    console.log('5. Testing Default Activities Endpoint (should require auth)...');
+    const activitiesResponse = await makeRequest({
+      hostname: 'localhost',
+      port: 5000,
+      path: '/api/activities',
+      method: 'GET'
+    });
+    
+    if (activitiesResponse.statusCode === 401) {
+      console.log('✅ Activities endpoint properly requires authentication');
+    } else {
+      console.log(`⚠️  Activities endpoint returned unexpected status: ${activitiesResponse.statusCode}`);
+    }
+  } catch (error) {
+    console.log(`❌ Activities endpoint error: ${error.message}`);
+  }
+  
   console.log('\n🎉 API test completed!');
   console.log('\n📋 Available endpoints:');
   console.log('   • Health: http://localhost:5000/health');
@@ -130,6 +151,7 @@ async function testAPI() {
   console.log('   • Uploads: http://localhost:5000/api/uploads/*');
   console.log('   • Tours: http://localhost:5000/api/custom-tours/*');
   console.log('   • Calendar: http://localhost:5000/api/calendar/*');
+  console.log('   • Activities: http://localhost:5000/api/activities/*');
 }
 
 // Run the test
