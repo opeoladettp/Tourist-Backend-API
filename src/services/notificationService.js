@@ -213,6 +213,105 @@ class NotificationService {
       console.error('Error sending bulk QR codes:', error);
     }
   }
+
+  /**
+   * Send notifications to multiple users (for broadcasts)
+   * @param {Array} userIds - Array of user IDs to send notifications to
+   * @param {Object} notificationData - Notification content
+   * @param {string} notificationData.title - Notification title
+   * @param {string} notificationData.message - Notification message
+   * @param {string} notificationData.type - Notification type
+   * @param {Object} notificationData.data - Additional data
+   */
+  static async sendNotificationToUsers(userIds, notificationData) {
+    try {
+      if (!userIds || userIds.length === 0) {
+        console.log('No users to send notifications to');
+        return;
+      }
+
+      const { title, message, type, data } = notificationData;
+
+      // Send push notifications to all users
+      const pushPromises = userIds.map(userId => 
+        NotificationQueueService.queuePushNotification(
+          userId.toString(),
+          title,
+          message,
+          { data: { ...data, type } }
+        )
+      );
+
+      await Promise.all(pushPromises);
+
+      // Optionally send email notifications for important broadcasts
+      if (type === 'broadcast' && data.broadcast_id) {
+        const users = await User.find({ 
+          _id: { $in: userIds },
+          is_active: true 
+        });
+
+        const emailPromises = users.map(user => {
+          if (user.email) {
+            const emailData = emailTemplates.broadcastNotification(
+              user.first_name,
+              data.tour_name,
+              message,
+              data.custom_tour_id
+            );
+
+            return sendEmail(user.email, emailData.subject, emailData.html);
+          }
+        }).filter(Boolean);
+
+        await Promise.all(emailPromises);
+      }
+
+      console.log(`Notifications sent to ${userIds.length} users for ${type}`);
+    } catch (error) {
+      console.error('Error sending notifications to users:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send broadcast notification to tour participants
+   * @param {Object} broadcast - Broadcast object with populated fields
+   */
+  static async sendBroadcastNotification(broadcast) {
+    try {
+      // Get all approved registrations for this tour
+      const registrations = await Registration.find({
+        custom_tour_id: broadcast.custom_tour_id._id,
+        status: 'approved'
+      }).populate('tourist_id', '_id first_name email');
+
+      if (registrations.length === 0) {
+        console.log('No registered tourists found for broadcast notification');
+        return;
+      }
+
+      const touristIds = registrations.map(reg => reg.tourist_id._id);
+      
+      const notificationData = {
+        title: `New message for ${broadcast.custom_tour_id.tour_name}`,
+        message: broadcast.message,
+        type: 'broadcast',
+        data: {
+          broadcast_id: broadcast._id,
+          custom_tour_id: broadcast.custom_tour_id._id,
+          tour_name: broadcast.custom_tour_id.tour_name,
+          provider_name: broadcast.provider_id.provider_name
+        }
+      };
+
+      await this.sendNotificationToUsers(touristIds, notificationData);
+      
+      console.log(`Broadcast notifications sent to ${touristIds.length} tourists`);
+    } catch (error) {
+      console.error('Error sending broadcast notifications:', error);
+    }
+  }
 }
 
 module.exports = NotificationService;

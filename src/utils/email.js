@@ -276,6 +276,20 @@ const emailTemplates = {
       <p>Scan the QR code or click the button above to join this amazing tour!</p>
       <p>Best regards,<br>Tourlicity Team</p>
     `
+  }),
+
+  broadcastNotification: (touristName, tourName, message, tourId) => ({
+    subject: `New Message - ${tourName}`,
+    html: `
+      <h2>New Tour Message</h2>
+      <p>Dear ${touristName},</p>
+      <p>You have received a new message for your tour: <strong>${tourName}</strong></p>
+      <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;">
+        <p style="margin: 0; font-style: italic;">"${message}"</p>
+      </div>
+      <p>This message was sent by your tour provider. Please check your tour details for any updates or instructions.</p>
+      <p>Best regards,<br>Tourlicity Team</p>
+    `
   })
 };
 
