@@ -19,9 +19,21 @@ connectRedis().then(client => {
     app.locals.redis = client;
     
     // Initialize notification queues after Redis connection
-    const NotificationQueueService = require('./services/notificationQueueService');
-    NotificationQueueService.initializeQueues();
+    try {
+      const NotificationQueueService = require('./services/notificationQueueService');
+      if (NotificationQueueService && typeof NotificationQueueService.initializeQueues === 'function') {
+        NotificationQueueService.initializeQueues();
+        console.log('Notification queues initialized');
+      }
+    } catch (error) {
+      console.warn('Failed to initialize notification queues:', error.message);
+    }
+  } else {
+    console.warn('Redis not available - notification queues disabled');
   }
+}).catch(error => {
+  console.warn('Redis connection failed:', error.message);
+  console.log('Server will continue without Redis functionality');
 });
 
 // Security middleware

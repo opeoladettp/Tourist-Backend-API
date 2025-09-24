@@ -28,13 +28,13 @@ Authorization: Bearer <your-jwt-token>
 
 ### Authentication
 
-| Method | Endpoint        | Description                 | Access  |
-| ------ | --------------- | --------------------------- | ------- |
-| POST   | `/auth/google`  | Google OAuth login/register | Public  |
-| GET    | `/auth/profile` | Get current user profile    | Private |
-| PUT    | `/auth/profile` | Update user profile         | Private |
+| Method | Endpoint                     | Description                     | Access  |
+| ------ | ---------------------------- | ------------------------------- | ------- |
+| POST   | `/auth/google`               | Google OAuth login/register     | Public  |
+| GET    | `/auth/profile`              | Get current user profile        | Private |
+| PUT    | `/auth/profile`              | Update user profile             | Private |
 | PUT    | `/auth/reset-google-picture` | Reset to Google profile picture | Private |
-| POST   | `/auth/logout`  | Logout user                 | Private |
+| POST   | `/auth/logout`               | Logout user                     | Private |
 
 ### Users
 
@@ -84,18 +84,18 @@ Authorization: Bearer <your-jwt-token>
 
 ### Calendar Entries
 
-| Method | Endpoint                       | Description              | Access                       |
-| ------ | ------------------------------ | ------------------------ | ---------------------------- |
-| GET    | `/calendar`                    | Get calendar entries     | Private                      |
-| GET    | `/calendar/default-activities` | Get default activities   | System Admin, Provider Admin |
-| GET    | `/calendar/:id`                | Get calendar entry by ID | Private                      |
-| POST   | `/calendar`                    | Create calendar entry    | System Admin, Provider Admin |
-| PUT    | `/calendar/:id`                | Update calendar entry    | System Admin, Provider Admin |
-| DELETE | `/calendar/:id`                | Delete calendar entry    | System Admin, Provider Admin |
-| POST   | `/calendar/:id/featured-image` | Upload featured image     | System Admin, Provider Admin |
-| DELETE | `/calendar/:id/featured-image` | Delete featured image     | System Admin, Provider Admin |
-| POST   | `/calendar/presigned-url`      | Get presigned URL         | System Admin, Provider Admin |
-| PUT    | `/calendar/:id/presigned-image`| Update with presigned image | System Admin, Provider Admin |
+| Method | Endpoint                        | Description                 | Access                       |
+| ------ | ------------------------------- | --------------------------- | ---------------------------- |
+| GET    | `/calendar`                     | Get calendar entries        | Private                      |
+| GET    | `/calendar/default-activities`  | Get default activities      | System Admin, Provider Admin |
+| GET    | `/calendar/:id`                 | Get calendar entry by ID    | Private                      |
+| POST   | `/calendar`                     | Create calendar entry       | System Admin, Provider Admin |
+| PUT    | `/calendar/:id`                 | Update calendar entry       | System Admin, Provider Admin |
+| DELETE | `/calendar/:id`                 | Delete calendar entry       | System Admin, Provider Admin |
+| POST   | `/calendar/:id/featured-image`  | Upload featured image       | System Admin, Provider Admin |
+| DELETE | `/calendar/:id/featured-image`  | Delete featured image       | System Admin, Provider Admin |
+| POST   | `/calendar/presigned-url`       | Get presigned URL           | System Admin, Provider Admin |
+| PUT    | `/calendar/:id/presigned-image` | Update with presigned image | System Admin, Provider Admin |
 
 ### Registrations
 
@@ -121,29 +121,29 @@ Authorization: Bearer <your-jwt-token>
 
 ### QR Codes
 
-| Method | Endpoint                              | Description                      | Access                       |
-| ------ | ------------------------------------- | -------------------------------- | ---------------------------- |
-| POST   | `/qr-codes/tours/:id/generate`        | Generate QR code for custom tour | System Admin, Provider Admin |
-| POST   | `/qr-codes/templates/:id/generate`    | Generate QR code for template    | System Admin                 |
-| PUT    | `/qr-codes/tours/:id/regenerate`      | Regenerate QR code for tour      | System Admin, Provider Admin |
-| POST   | `/qr-codes/tours/:id/share`           | Share QR code via email          | System Admin, Provider Admin |
-| GET    | `/qr-codes/tours/:id`                 | Get QR code information          | System Admin, Provider Admin |
-| DELETE | `/qr-codes/tours/:id`                 | Delete QR code                   | System Admin, Provider Admin |
+| Method | Endpoint                           | Description                      | Access                       |
+| ------ | ---------------------------------- | -------------------------------- | ---------------------------- |
+| POST   | `/qr-codes/tours/:id/generate`     | Generate QR code for custom tour | System Admin, Provider Admin |
+| POST   | `/qr-codes/templates/:id/generate` | Generate QR code for template    | System Admin                 |
+| PUT    | `/qr-codes/tours/:id/regenerate`   | Regenerate QR code for tour      | System Admin, Provider Admin |
+| POST   | `/qr-codes/tours/:id/share`        | Share QR code via email          | System Admin, Provider Admin |
+| GET    | `/qr-codes/tours/:id`              | Get QR code information          | System Admin, Provider Admin |
+| DELETE | `/qr-codes/tours/:id`              | Delete QR code                   | System Admin, Provider Admin |
 
 ### Notifications
 
-| Method | Endpoint                              | Description                      | Access                       |
-| ------ | ------------------------------------- | -------------------------------- | ---------------------------- |
-| GET    | `/notifications/vapid-key`            | Get VAPID public key             | Public                       |
-| POST   | `/notifications/subscribe`            | Subscribe to push notifications  | Private                      |
-| POST   | `/notifications/unsubscribe`          | Unsubscribe from push            | Private                      |
-| GET    | `/notifications/subscriptions`        | Get user's subscriptions         | Private                      |
-| POST   | `/notifications/test`                 | Send test notification           | Private                      |
-| POST   | `/notifications/send`                 | Send notification to user        | System Admin, Provider Admin |
-| POST   | `/notifications/send-bulk`            | Send bulk notifications          | System Admin                 |
-| GET    | `/notifications/queue-stats`          | Get queue statistics             | System Admin                 |
-| POST   | `/notifications/cleanup`              | Clean up notification queues     | System Admin                 |
-| GET    | `/notifications/all-subscriptions`    | Get all subscriptions            | System Admin                 |
+| Method | Endpoint                           | Description                     | Access                       |
+| ------ | ---------------------------------- | ------------------------------- | ---------------------------- |
+| GET    | `/notifications/vapid-key`         | Get VAPID public key            | Public                       |
+| POST   | `/notifications/subscribe`         | Subscribe to push notifications | Private                      |
+| POST   | `/notifications/unsubscribe`       | Unsubscribe from push           | Private                      |
+| GET    | `/notifications/subscriptions`     | Get user's subscriptions        | Private                      |
+| POST   | `/notifications/test`              | Send test notification          | Private                      |
+| POST   | `/notifications/send`              | Send notification to user       | System Admin, Provider Admin |
+| POST   | `/notifications/send-bulk`         | Send bulk notifications         | System Admin                 |
+| GET    | `/notifications/queue-stats`       | Get queue statistics            | System Admin                 |
+| POST   | `/notifications/cleanup`           | Clean up notification queues    | System Admin                 |
+| GET    | `/notifications/all-subscriptions` | Get all subscriptions           | System Admin                 |
 
 ## Request/Response Examples
 
@@ -258,6 +258,7 @@ Response:
 #### Profile Picture Behavior
 
 **Google OAuth Profile Pictures:**
+
 - When users authenticate with Google OAuth, their Google profile picture is automatically set if they don't have one
 - If users already have a Google profile picture, it gets updated with the latest from Google
 - Custom profile pictures (non-Google URLs) are **never** overwritten by Google OAuth
