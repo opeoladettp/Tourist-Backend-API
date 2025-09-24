@@ -331,13 +331,33 @@ if (require.main === module) {
   });
 
   // Graceful shutdown
-  process.on('SIGTERM', async () => {
-    console.log('SIGTERM received, shutting down gracefully');
-    if (redisClient) {
-      await redisClient.quit();
+  const gracefulShutdown = async (signal) => {
+    console.log(`${signal} received, shutting down gracefully`);
+    
+    try {
+      // Close Redis connection
+      if (redisClient) {
+        await redisClient.quit();
+        console.log('Redis connection closed');
+      }
+      
+      // Close MongoDB connection
+      if (require('mongoose').connection.readyState !== 0) {
+        await require('mongoose').disconnect();
+        console.log('MongoDB connection closed');
+      }
+      
+      console.log('Graceful shutdown completed');
+      process.exit(0);
+    } catch (error) {
+      console.error('Error during graceful shutdown:', error);
+      process.exit(1);
     }
-    process.exit(0);
-  });
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // For nodemon
 }
 
 module.exports = app;
