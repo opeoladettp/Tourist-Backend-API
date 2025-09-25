@@ -7,16 +7,25 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
 const { connectDB, connectRedis } = require('./config/database');
+const cacheService = require('./services/cacheService');
 
 const app = express();
 
 // Connect to databases
 connectDB();
 let redisClient;
-connectRedis().then(client => {
+connectRedis().then(async client => {
   redisClient = client;
   if (client) {
     app.locals.redis = client;
+    
+    // Initialize cache service with the same Redis client
+    try {
+      await cacheService.initialize(client);
+      console.log('Cache service initialized');
+    } catch (error) {
+      console.warn('Failed to initialize cache service:', error.message);
+    }
     
     // Initialize notification queues after Redis connection
     try {
@@ -29,7 +38,7 @@ connectRedis().then(client => {
       console.warn('Failed to initialize notification queues:', error.message);
     }
   } else {
-    console.warn('Redis not available - notification queues disabled');
+    console.warn('Redis not available - caching and notification queues disabled');
   }
 }).catch(error => {
   console.warn('Redis connection failed:', error.message);
@@ -144,6 +153,12 @@ app.get('/health', async (req, res) => {
       healthCheck.status = 'DEGRADED';
     }
 
+    // Add cache statistics
+    if (cacheService.isAvailable()) {
+      const cacheStats = await cacheService.getStats();
+      healthCheck.cache = cacheStats;
+    }
+
     // Return appropriate status code
     const statusCode = healthCheck.status === 'OK' ? 200 : 503;
     res.status(statusCode).json(healthCheck);
@@ -243,6 +258,12 @@ app.get('/health/detailed', async (req, res) => {
       healthCheck.status = 'DEGRADED';
     }
 
+    // Add detailed cache statistics
+    if (cacheService.isAvailable()) {
+      const cacheStats = await cacheService.getStats();
+      healthCheck.cache = cacheStats;
+    }
+
     // Performance metrics
     const memUsage = process.memoryUsage();
     healthCheck.performance = {
@@ -289,6 +310,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/activities', require('./routes/defaultActivities'));
 app.use('/api/broadcasts', require('./routes/broadcasts'));
+app.use('/api/cache', require('./routes/cache'));
 
 // Additional routes (to be created)
 // app.use('/api/documents', require('./routes/documents'));
@@ -335,6 +357,9 @@ if (require.main === module) {
     console.log(`${signal} received, shutting down gracefully`);
     
     try {
+      // Close cache service
+      await cacheService.close();
+      
       // Close Redis connection
       if (redisClient) {
         await redisClient.quit();

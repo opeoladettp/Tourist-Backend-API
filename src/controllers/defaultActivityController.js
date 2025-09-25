@@ -1,5 +1,6 @@
 const DefaultActivity = require('../models/DefaultActivity');
 const { paginate, buildPaginationResponse } = require('../utils/helpers');
+const databaseCache = require('../services/databaseCache');
 
 // Get all default activities
 const getAllDefaultActivities = async (req, res) => {
@@ -25,13 +26,19 @@ const getAllDefaultActivities = async (req, res) => {
       query.is_active = is_active === 'true';
     }
 
-    const activities = await DefaultActivity.find(query)
-      .populate('created_by', 'first_name last_name email')
-      .skip(skip)
-      .limit(limitNum)
-      .sort({ activity_name: 1 });
+    const activities = await databaseCache.find(
+      DefaultActivity, 
+      query, 
+      {
+        populate: 'created_by',
+        skip,
+        limit: limitNum,
+        sort: { activity_name: 1 }
+      },
+      600 // 10 minutes cache
+    );
 
-    const total = await DefaultActivity.countDocuments(query);
+    const total = await databaseCache.countDocuments(DefaultActivity, query, 600);
 
     res.json(buildPaginationResponse(activities, total, page, limit));
   } catch (error) {
@@ -43,8 +50,12 @@ const getAllDefaultActivities = async (req, res) => {
 // Get default activity by ID
 const getDefaultActivityById = async (req, res) => {
   try {
-    const activity = await DefaultActivity.findById(req.params.id)
-      .populate('created_by', 'first_name last_name email');
+    const activity = await databaseCache.findById(
+      DefaultActivity, 
+      req.params.id, 
+      { populate: 'created_by' },
+      1200 // 20 minutes cache
+    );
     
     if (!activity) {
       return res.status(404).json({ error: 'Default activity not found' });
@@ -199,9 +210,15 @@ const getActivitiesForSelection = async (req, res) => {
       ];
     }
 
-    const activities = await DefaultActivity.find(query)
-      .select('activity_name description typical_duration_hours category')
-      .sort({ activity_name: 1 })
+    const activities = await databaseCache.find(
+      DefaultActivity, 
+      query, 
+      {
+        select: 'activity_name description typical_duration_hours category',
+        sort: { activity_name: 1 }
+      },
+      900 // 15 minutes cache for selection
+    )
       .limit(50); // Limit for selection dropdown
 
     res.json({ activities });

@@ -3,6 +3,8 @@ const router = express.Router();
 const { authenticate, authorize, requireCompleteProfile } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validation');
 const broadcastController = require('../controllers/broadcastController');
+const { cacheMiddleware } = require('../middleware/cache');
+const { createInvalidationMiddleware } = require('../middleware/cacheInvalidation');
 
 /**
  * @swagger

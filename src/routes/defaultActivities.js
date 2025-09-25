@@ -3,6 +3,8 @@ const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validation');
 const defaultActivityController = require('../controllers/defaultActivityController');
+const { cacheMiddleware } = require('../middleware/cache');
+const { createInvalidationMiddleware } = require('../middleware/cacheInvalidation');
 
 /**
  * @swagger
@@ -123,6 +125,11 @@ const defaultActivityController = require('../controllers/defaultActivityControl
 router.get('/', 
   authenticate,
   authorize('system_admin', 'provider_admin'),
+  cacheMiddleware({ 
+    ttl: 600, // 10 minutes
+    prefix: 'activities',
+    varyBy: ['page', 'limit', 'category', 'search']
+  }),
   defaultActivityController.getAllDefaultActivities
 );
 
@@ -176,6 +183,10 @@ router.get('/',
 router.get('/selection', 
   authenticate,
   authorize('system_admin', 'provider_admin'),
+  cacheMiddleware({ 
+    ttl: 900, // 15 minutes
+    prefix: 'activities-selection'
+  }),
   defaultActivityController.getActivitiesForSelection
 );
 
@@ -212,6 +223,10 @@ router.get('/selection',
 router.get('/categories', 
   authenticate,
   authorize('system_admin', 'provider_admin'),
+  cacheMiddleware({ 
+    ttl: 1800, // 30 minutes - categories change rarely
+    prefix: 'activity-categories'
+  }),
   defaultActivityController.getActivityCategories
 );
 
@@ -250,6 +265,10 @@ router.get('/categories',
 router.get('/:id', 
   authenticate,
   authorize('system_admin', 'provider_admin'),
+  cacheMiddleware({ 
+    ttl: 1200, // 20 minutes
+    prefix: 'activity-detail'
+  }),
   defaultActivityController.getDefaultActivityById
 );
 
@@ -290,6 +309,7 @@ router.post('/',
   authenticate,
   authorize('system_admin'),
   validate(schemas.defaultActivity),
+  createInvalidationMiddleware('DefaultActivity', { operation: 'create' }),
   defaultActivityController.createDefaultActivity
 );
 
@@ -339,6 +359,7 @@ router.put('/:id',
   authenticate,
   authorize('system_admin'),
   validate(schemas.defaultActivity),
+  createInvalidationMiddleware('DefaultActivity', { operation: 'update' }),
   defaultActivityController.updateDefaultActivity
 );
 
@@ -417,6 +438,7 @@ router.patch('/:id/status',
 router.delete('/:id', 
   authenticate,
   authorize('system_admin'),
+  createInvalidationMiddleware('DefaultActivity', { operation: 'delete' }),
   defaultActivityController.deleteDefaultActivity
 );
 

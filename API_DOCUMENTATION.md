@@ -1265,6 +1265,12 @@ NODE_ENV=development
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/tourlicity
 REDIS_URL=redis://localhost:6379
+
+# Cache Configuration (Optional)
+CACHE_DEFAULT_TTL=300
+CACHE_API_TTL=300
+CACHE_DB_TTL=600
+CACHE_SESSION_TTL=86400
 JWT_SECRET=your-super-secret-jwt-key
 AWS_ACCESS_KEY_ID=your-aws-access-key
 AWS_SECRET_ACCESS_KEY=your-aws-secret-key
@@ -1293,7 +1299,49 @@ The system automatically sends email notifications for:
 
 ## Redis Caching
 
-Redis is used for caching frequently accessed data and session management to improve performance.
+Redis is used for comprehensive caching to improve performance:
+
+### Cache Types
+
+1. **API Response Caching**: GET requests are cached with configurable TTL
+2. **Database Query Caching**: MongoDB query results are cached to reduce database load
+3. **Session Caching**: User sessions and authentication data
+4. **Job Queues**: Background processing for notifications
+
+### Cache Features
+
+- **Automatic Invalidation**: Cache is automatically invalidated when data changes
+- **Pattern-based Invalidation**: Bulk cache invalidation using Redis patterns
+- **Configurable TTL**: Different cache durations for different data types
+- **Cache Statistics**: Monitor cache hit rates and performance
+- **Graceful Degradation**: System works without Redis, with reduced performance
+
+### Cache Management API
+
+The system provides admin endpoints for cache management:
+
+- `GET /api/cache/stats` - Get cache statistics
+- `DELETE /api/cache/clear` - Clear all cache
+- `DELETE /api/cache/invalidate/pattern` - Invalidate by pattern
+- `DELETE /api/cache/invalidate/model/{modelName}` - Invalidate model cache
+- `DELETE /api/cache/invalidate/user/{userId}` - Invalidate user cache
+- `POST /api/cache/warmup` - Warm up cache with common queries
+
+### Cache Headers
+
+API responses include cache-related headers:
+
+- `X-Cache: HIT|MISS` - Indicates cache hit or miss
+- `X-Cache-Key` - The cache key used
+- `Cache-Control` - Browser caching directives
+
+### Cache TTL Configuration
+
+Default cache durations:
+- API responses: 5 minutes
+- Database queries: 10 minutes
+- User sessions: 24 hours
+- Static data (categories): 30 minutes
 
 ## Health Check
 
