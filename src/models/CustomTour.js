@@ -84,16 +84,16 @@ const customTourSchema = new mongoose.Schema({
 });
 
 // Auto-generate join code
-customTourSchema.pre('save', function(next) {
+customTourSchema.pre('save', function (next) {
   if (!this.join_code) {
     this.join_code = Math.random().toString(36).substring(2, 8).toUpperCase();
   }
-  
+
   // Update remaining_tourists when max_tourists changes
   if (this.isModified('max_tourists') && !this.isNew) {
     // This will be handled in the route logic to account for existing registrations
   }
-  
+
   next();
 });
 
