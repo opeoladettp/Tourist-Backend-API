@@ -1,14 +1,18 @@
-const AWS = require('aws-sdk');
+const { S3Client, DeleteObjectCommand, HeadObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { Upload } = require('@aws-sdk/lib-storage');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 
-// Configure AWS S3
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION || 'us-east-1'
+// Configure AWS S3 Client (v3)
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  }
 });
 
 class ImageUploadService {
@@ -63,9 +67,8 @@ class ImageUploadService {
     // S3 storage configuration
     const upload = multer({
       storage: multerS3({
-        s3: s3,
+        s3: s3Client,
         bucket: process.env.S3_BUCKET_NAME,
-        acl: 'public-read',
         key: function (req, file, cb) {
           const fileExtension = path.extname(file.originalname);
           const fileName = `${folder}/${Date.now()}-${uuidv4()}${fileExtension}`;
@@ -107,18 +110,20 @@ class ImageUploadService {
     try {
       const key = `${folder}/${Date.now()}-${uuidv4()}-${fileName}`;
       
-      const uploadParams = {
-        Bucket: process.env.S3_BUCKET_NAME,
-        Key: key,
-        Body: imageBuffer,
-        ContentType: contentType,
-        ACL: 'public-read',
-        Metadata: {
-          uploadedAt: new Date().toISOString()
+      const upload = new Upload({
+        client: s3Client,
+        params: {
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: key,
+          Body: imageBuffer,
+          ContentType: contentType,
+          Metadata: {
+            uploadedAt: new Date().toISOString()
+          }
         }
-      };
+      });
 
-      const result = await s3.upload(uploadParams).promise();
+      const result = await upload.done();
       return result.Location;
     } catch (error) {
       console.error('Error uploading image buffer:', error);
@@ -146,12 +151,12 @@ class ImageUploadService {
 
       const key = urlParts.slice(bucketIndex + 1).join('/');
 
-      const deleteParams = {
+      const deleteCommand = new DeleteObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
         Key: key
-      };
+      });
 
-      await s3.deleteObject(deleteParams).promise();
+      await s3Client.send(deleteCommand);
       console.log(`Image deleted from S3: ${key}`);
       return true;
     } catch (error) {
@@ -178,12 +183,12 @@ class ImageUploadService {
 
       const key = urlParts.slice(bucketIndex + 1).join('/');
 
-      const params = {
+      const headCommand = new HeadObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
         Key: key
-      };
+      });
 
-      const result = await s3.headObject(params).promise();
+      const result = await s3Client.send(headCommand);
       return {
         size: result.ContentLength,
         lastModified: result.LastModified,
@@ -243,15 +248,13 @@ class ImageUploadService {
       const folder = folderMap[fileType] || 'general-uploads';
       const key = `${folder}/${Date.now()}-${uuidv4()}-${fileName}`;
       
-      const params = {
+      const command = new PutObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
         Key: key,
-        ContentType: contentType,
-        ACL: 'public-read',
-        Expires: expiresIn
-      };
+        ContentType: contentType
+      });
 
-      const presignedUrl = await s3.getSignedUrlPromise('putObject', params);
+      const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
       const publicUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
 
       return {
@@ -275,12 +278,12 @@ class ImageUploadService {
     try {
       if (!key) return true;
 
-      const deleteParams = {
+      const deleteCommand = new DeleteObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
         Key: key
-      };
+      });
 
-      await s3.deleteObject(deleteParams).promise();
+      await s3Client.send(deleteCommand);
       console.log(`File deleted from S3: ${key}`);
       return true;
     } catch (error) {

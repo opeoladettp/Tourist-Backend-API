@@ -82,6 +82,19 @@ Authorization: Bearer <your-jwt-token>
 | PATCH  | `/custom-tours/:id/status`        | Update tour status       | System Admin, Provider Admin (own)                       |
 | DELETE | `/custom-tours/:id`               | Delete custom tour       | System Admin, Provider Admin (own)                       |
 
+#### Tour Visibility
+
+Custom tours support two visibility modes via the `viewAccessibility` property:
+
+- **`public`** (default): Tour is visible to all users and can be discovered through general tour listings
+- **`private`**: Tour is only accessible to users who have the specific join code or are already registered
+
+**Access Control:**
+
+- Public tours: Visible in general listings, accessible to all users
+- Private tours: Only accessible via join code search, not visible in general listings for tourists
+- Provider admins and system admins can always see and manage their tours regardless of visibility
+
 ### Calendar Entries
 
 | Method | Endpoint                        | Description                 | Access                       |
@@ -99,39 +112,39 @@ Authorization: Bearer <your-jwt-token>
 
 ### File Uploads
 
-| Method | Endpoint                        | Description                    | Access                             |
-| ------ | ------------------------------- | ------------------------------ | ---------------------------------- |
-| POST   | `/uploads/profile-picture`      | Upload profile picture         | Private                            |
-| POST   | `/uploads/tour-image`           | Upload tour image              | System Admin, Provider Admin       |
-| POST   | `/uploads/multiple-tour-images` | Upload multiple tour images    | System Admin, Provider Admin       |
-| POST   | `/uploads/general`              | Upload general file            | Private                            |
-| POST   | `/uploads/presigned-url`        | Get presigned URL for S3       | Private                            |
-| DELETE | `/uploads/delete`               | Delete uploaded file           | Private                            |
+| Method | Endpoint                        | Description                 | Access                       |
+| ------ | ------------------------------- | --------------------------- | ---------------------------- |
+| POST   | `/uploads/profile-picture`      | Upload profile picture      | Private                      |
+| POST   | `/uploads/tour-image`           | Upload tour image           | System Admin, Provider Admin |
+| POST   | `/uploads/multiple-tour-images` | Upload multiple tour images | System Admin, Provider Admin |
+| POST   | `/uploads/general`              | Upload general file         | Private                      |
+| POST   | `/uploads/presigned-url`        | Get presigned URL for S3    | Private                      |
+| DELETE | `/uploads/delete`               | Delete uploaded file        | Private                      |
 
 ### Default Activities
 
-| Method | Endpoint                     | Description                    | Access                       |
-| ------ | ---------------------------- | ------------------------------ | ---------------------------- |
-| GET    | `/activities`                | Get all default activities     | System Admin, Provider Admin |
-| GET    | `/activities/selection`      | Get activities for selection   | System Admin, Provider Admin |
-| GET    | `/activities/categories`     | Get activity categories        | System Admin, Provider Admin |
-| GET    | `/activities/:id`            | Get default activity by ID     | System Admin, Provider Admin |
-| POST   | `/activities`                | Create new default activity    | System Admin                 |
-| PUT    | `/activities/:id`            | Update default activity        | System Admin                 |
-| PATCH  | `/activities/:id/status`     | Toggle activity status         | System Admin                 |
-| DELETE | `/activities/:id`            | Delete default activity        | System Admin                 |
+| Method | Endpoint                 | Description                  | Access                       |
+| ------ | ------------------------ | ---------------------------- | ---------------------------- |
+| GET    | `/activities`            | Get all default activities   | System Admin, Provider Admin |
+| GET    | `/activities/selection`  | Get activities for selection | System Admin, Provider Admin |
+| GET    | `/activities/categories` | Get activity categories      | System Admin, Provider Admin |
+| GET    | `/activities/:id`        | Get default activity by ID   | System Admin, Provider Admin |
+| POST   | `/activities`            | Create new default activity  | System Admin                 |
+| PUT    | `/activities/:id`        | Update default activity      | System Admin                 |
+| PATCH  | `/activities/:id/status` | Toggle activity status       | System Admin                 |
+| DELETE | `/activities/:id`        | Delete default activity      | System Admin                 |
 
 ### Broadcasts
 
-| Method | Endpoint                     | Description                    | Access                       |
-| ------ | ---------------------------- | ------------------------------ | ---------------------------- |
-| GET    | `/broadcasts`                | Get all broadcasts             | System Admin, Provider Admin |
-| GET    | `/broadcasts/tour/:tourId`   | Get broadcasts for specific tour | All users (registered)     |
-| GET    | `/broadcasts/:id`            | Get broadcast by ID            | System Admin, Provider Admin |
-| POST   | `/broadcasts`                | Create new broadcast           | System Admin, Provider Admin |
-| PUT    | `/broadcasts/:id`            | Update broadcast               | System Admin, Provider Admin |
-| PATCH  | `/broadcasts/:id/publish`    | Publish broadcast (send notifications) | System Admin, Provider Admin |
-| DELETE | `/broadcasts/:id`            | Delete broadcast               | System Admin, Provider Admin |
+| Method | Endpoint                   | Description                            | Access                       |
+| ------ | -------------------------- | -------------------------------------- | ---------------------------- |
+| GET    | `/broadcasts`              | Get all broadcasts                     | System Admin, Provider Admin |
+| GET    | `/broadcasts/tour/:tourId` | Get broadcasts for specific tour       | All users (registered)       |
+| GET    | `/broadcasts/:id`          | Get broadcast by ID                    | System Admin, Provider Admin |
+| POST   | `/broadcasts`              | Create new broadcast                   | System Admin, Provider Admin |
+| PUT    | `/broadcasts/:id`          | Update broadcast                       | System Admin, Provider Admin |
+| PATCH  | `/broadcasts/:id/publish`  | Publish broadcast (send notifications) | System Admin, Provider Admin |
+| DELETE | `/broadcasts/:id`          | Delete broadcast                       | System Admin, Provider Admin |
 
 ### Registrations
 
@@ -314,6 +327,7 @@ Content-Type: application/json
   "tour_name": "Amazing Paris Adventure",
   "start_date": "2024-06-01",
   "end_date": "2024-06-07",
+  "viewAccessibility": "private",
   "max_tourists": 8,
   "group_chat_link": "https://chat.example.com/room123",
   "features_image": "https://example.com/paris-main.jpg",
@@ -344,6 +358,7 @@ Response:
 		"start_date": "2024-06-01T00:00:00.000Z",
 		"end_date": "2024-06-07T00:00:00.000Z",
 		"status": "draft",
+		"viewAccessibility": "private",
 		"join_code": "ABC123",
 		"max_tourists": 8,
 		"remaining_tourists": 8,
@@ -1338,6 +1353,7 @@ API responses include cache-related headers:
 ### Cache TTL Configuration
 
 Default cache durations:
+
 - API responses: 5 minutes
 - Database queries: 10 minutes
 - User sessions: 24 hours
@@ -1450,3 +1466,101 @@ These endpoints are designed for:
 - **Monitoring Tools**: Use `/health/detailed` for comprehensive metrics
 - **Container Orchestration**: Both endpoints work with Docker, Kubernetes health checks
 - **CI/CD Pipelines**: Verify deployment health before traffic routing
+
+## Recent Updates & Improvements
+
+### Version 1.2.0 - Tour Visibility & AWS SDK Migration
+
+#### 🆕 New Features
+
+**Custom Tour Visibility Control**
+- Added `viewAccessibility` property to CustomTour model
+- **Public tours**: Visible to all users in general listings
+- **Private tours**: Only accessible via join code
+- Enhanced access control for better privacy management
+
+**API Changes:**
+- `POST /api/custom-tours` now accepts `viewAccessibility` parameter
+- `GET /api/custom-tours` filters results based on user type and tour visibility
+- `GET /api/custom-tours/search/:join_code` returns `access_method` field
+- Tourist users can only see public tours in general listings
+
+#### 🔧 Technical Improvements
+
+**AWS SDK Migration (v2 → v3)**
+- Migrated from `aws-sdk` v2 to `@aws-sdk/client-s3` v3
+- Improved performance and reduced bundle size
+- Better error handling and modern async/await patterns
+- Removed deprecated ACL parameters for S3 security compliance
+
+**Image Upload Enhancements**
+- Fixed MIME type validation (removed invalid `image/jpg` type)
+- Resolved S3 ACL compatibility issues
+- Enhanced error handling for upload failures
+- Support for both local and S3 storage fallback
+
+**Database & Caching**
+- Improved MongoDB connection stability
+- Enhanced Redis integration for caching
+- Better error handling for database disconnections
+- Optimized query performance
+
+#### 🛡️ Security & Compliance
+
+**S3 Security Updates**
+- Removed ACL parameters to comply with modern S3 security settings
+- Compatible with "Block public ACLs" bucket configuration
+- Supports bucket policy-based public access control
+- Enhanced file upload security validation
+
+**Access Control Improvements**
+- Enhanced tour visibility controls
+- Better user role-based access restrictions
+- Improved authentication middleware
+- Secure join code-based access for private tours
+
+#### 📋 Migration Notes
+
+**For Existing Tours:**
+- All existing tours default to `viewAccessibility: 'public'`
+- No breaking changes to existing API endpoints
+- Backward compatible with existing client implementations
+
+**For S3 Configuration:**
+- Remove individual file ACLs in favor of bucket policies
+- Update bucket permissions for public read access if needed
+- No changes required for existing uploaded files
+
+#### 🔍 Validation Updates
+
+**Enhanced Input Validation:**
+- Added `viewAccessibility` validation (accepts only 'public' or 'private')
+- Improved file type validation for image uploads
+- Better error messages for validation failures
+
+**Example Usage:**
+
+```javascript
+// Create a private tour
+POST /api/custom-tours
+{
+  "tour_name": "Exclusive VIP Experience",
+  "viewAccessibility": "private",
+  // ... other fields
+}
+
+// Search for private tour by join code
+GET /api/custom-tours/search/ABC123
+// Returns: { "tour": {...}, "access_method": "join_code" }
+```
+
+#### 🚀 Performance Improvements
+
+- **AWS SDK v3**: Faster S3 operations with modern SDK
+- **Optimized Queries**: Better database query performance
+- **Enhanced Caching**: Improved Redis integration
+- **Error Handling**: More robust error recovery mechanisms
+
+---
+
+*For technical support or questions about these updates, please refer to the implementation documentation or contact the development team.*

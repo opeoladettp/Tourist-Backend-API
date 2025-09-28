@@ -65,6 +65,7 @@ const schemas = {
     start_date: Joi.date().required(),
     end_date: Joi.date().required(),
     status: Joi.string().valid('draft', 'published', 'completed', 'cancelled'),
+    viewAccessibility: Joi.string().valid('public', 'private'),
     join_code: Joi.string().max(10),
     max_tourists: Joi.number().min(1),
     group_chat_link: Joi.string().uri(),

@@ -1,12 +1,14 @@
 const QRCode = require('qrcode');
-const AWS = require('aws-sdk');
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { v4: uuidv4 } = require('uuid');
 
-// Configure AWS S3
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION || 'us-east-1'
+// Configure AWS S3 Client (v3)
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  }
 });
 
 class QRCodeService {
@@ -56,7 +58,6 @@ class QRCodeService {
         Key: filename,
         Body: qrCodeBuffer,
         ContentType: 'image/png',
-        ACL: 'public-read',
         Metadata: {
           tourId: tourData._id.toString(),
           tourType: tourType,
@@ -64,10 +65,14 @@ class QRCodeService {
         }
       };
 
-      const uploadResult = await s3.upload(uploadParams).promise();
+      const command = new PutObjectCommand(uploadParams);
+      const uploadResult = await s3Client.send(command);
+      
+      // Construct the public URL since AWS SDK v3 doesn't return Location
+      const publicUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${filename}`;
       
       console.log(`QR code generated and uploaded for ${tourType} tour: ${tourData._id}`);
-      return uploadResult.Location;
+      return publicUrl;
 
     } catch (error) {
       console.error('Error generating QR code:', error);
@@ -105,15 +110,18 @@ class QRCodeService {
         Key: s3Key,
         Body: qrCodeBuffer,
         ContentType: 'image/png',
-        ACL: 'public-read',
         Metadata: {
           type: 'custom',
           generatedAt: new Date().toISOString()
         }
       };
 
-      const uploadResult = await s3.upload(uploadParams).promise();
-      return uploadResult.Location;
+      const command = new PutObjectCommand(uploadParams);
+      const uploadResult = await s3Client.send(command);
+      
+      // Construct the public URL since AWS SDK v3 doesn't return Location
+      const publicUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${s3Key}`;
+      return publicUrl;
 
     } catch (error) {
       console.error('Error generating custom QR code:', error);
@@ -191,12 +199,12 @@ class QRCodeService {
 
       const key = urlParts.slice(bucketIndex + 1).join('/');
 
-      const deleteParams = {
+      const deleteCommand = new DeleteObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
         Key: key
-      };
+      });
 
-      await s3.deleteObject(deleteParams).promise();
+      await s3Client.send(deleteCommand);
       console.log(`QR code deleted from S3: ${key}`);
       return true;
 

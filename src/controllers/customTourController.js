@@ -16,7 +16,11 @@ const getAllCustomTours = async (req, res) => {
     const query = {};
     if (req.user.user_type === 'provider_admin') {
       query.provider_id = req.user.provider_id;
+    } else if (req.user.user_type === 'tourist') {
+      // Tourists can only see public tours or private tours they have the join code for
+      query.viewAccessibility = 'public';
     }
+    
     if (search) {
       query.$or = [
         { tour_name: { $regex: search, $options: 'i' } },
@@ -60,6 +64,21 @@ const getCustomTourById = async (req, res) => {
     if (req.user.user_type === 'provider_admin' && 
         req.user.provider_id?.toString() !== tour.provider_id._id.toString()) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Check viewAccessibility for tourists
+    if (req.user.user_type === 'tourist' && tour.viewAccessibility === 'private') {
+      // Check if user has access through registration or join code
+      const hasAccess = await Registration.findOne({
+        custom_tour_id: req.params.id,
+        tourist_id: req.user._id
+      });
+      
+      if (!hasAccess) {
+        return res.status(403).json({ 
+          error: 'This tour is private. You need the join code to access it.' 
+        });
+      }
     }
 
     // Get calendar entries for this tour
@@ -339,6 +358,13 @@ const searchTourByJoinCode = async (req, res) => {
       return res.status(404).json({ error: 'Tour not found or not available for registration' });
     }
 
+    // For private tours, having the join code grants access
+    // For public tours, anyone can access
+    if (tour.viewAccessibility === 'private') {
+      // User found the tour with join code, so they have access
+      console.log(`User ${req.user._id} accessed private tour ${tour._id} with join code`);
+    }
+
     // Check if user is already registered
     const existingRegistration = await Registration.findOne({
       custom_tour_id: tour._id,
@@ -348,7 +374,8 @@ const searchTourByJoinCode = async (req, res) => {
     res.json({ 
       tour,
       already_registered: !!existingRegistration,
-      registration_status: existingRegistration?.status
+      registration_status: existingRegistration?.status,
+      access_method: tour.viewAccessibility === 'private' ? 'join_code' : 'public'
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to search tour' });
